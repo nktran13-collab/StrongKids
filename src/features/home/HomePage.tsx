@@ -142,25 +142,25 @@ export function HomePage() {
         </div>
       </section>
 
-      <Card className="relative overflow-hidden border-0 bg-[linear-gradient(135deg,#FF7A59_0%,#FF9A5C_55%,#FFC94A_130%)] p-5 text-white">
+      <Card className="relative overflow-hidden border-0 bg-[linear-gradient(135deg,#FF7A59_0%,#FF9A5C_55%,#FFC94A_130%)] p-5 text-[#1B2F43]">
         <div className="absolute -right-6 -top-8 h-32 w-32 rounded-full bg-white/15" />
         <div className="absolute -bottom-10 right-14 h-24 w-24 rounded-full bg-white/10" />
         <div className="relative flex items-center gap-4">
-          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-[1.4rem] bg-white/20 backdrop-blur">
-            <Icon name="flame" filled className="h-9 w-9 animate-flame text-white" />
+          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-[1.4rem] bg-white/30 backdrop-blur">
+            <Icon name="flame" filled className="h-9 w-9 animate-flame text-[#B23A16]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-white/80">
+            <p className="text-xs font-extrabold uppercase tracking-[0.16em]">
               Chuỗi vận động
             </p>
             <p className="display-title mt-0.5 text-[26px] leading-none">
               {streak.current > 0 ? `${streak.current} ngày liên tiếp` : 'Bắt đầu hôm nay!'}
             </p>
-            <p className="mt-1.5 text-xs font-bold text-white/85">
+            <p className="mt-1.5 text-xs font-bold">
               Kỷ lục dài nhất: {streak.longest} ngày · Tuần này {streak.thisWeekCompleted} buổi
             </p>
           </div>
-          <Icon name="sparkles" className="h-6 w-6 shrink-0 text-white/70" />
+          <Icon name="sparkles" className="h-6 w-6 shrink-0 text-[#B23A16]/70" />
         </div>
       </Card>
 
@@ -195,6 +195,7 @@ export function HomePage() {
           <div className="flex gap-4 p-4">
             <ExerciseArt
               exercise={firstMain}
+              priority
               className="h-[104px] w-[124px] shrink-0 rounded-[1.3rem]"
               decoration={false}
             />
@@ -235,24 +236,24 @@ export function HomePage() {
         <div className="flex justify-between gap-1">
           {weekDays.map((day) => (
             <div key={day.key} className="flex flex-1 flex-col items-center gap-1.5">
-              <span className={cx('text-[10px] font-extrabold', day.today ? 'text-coral' : 'text-muted')}>
+              <span className={cx('text-xs font-extrabold', day.today ? 'text-coral-dark' : 'text-muted')}>
                 {day.label}
               </span>
               <div
                 className={cx(
                   'grid h-9 w-9 place-items-center rounded-full text-xs font-extrabold transition',
                   day.completed
-                    ? 'bg-teal text-white'
+                    ? 'bg-teal-dark text-white'
                     : day.today
                       ? 'bg-peach text-coral-dark ring-2 ring-coral/50'
                       : day.scheduled
                         ? 'bg-ink/5 text-ink'
-                        : 'text-muted/50',
+                        : 'text-muted',
                 )}
               >
                 {day.completed ? <Icon name="check" className="h-4 w-4" /> : day.day}
               </div>
-              <span className="text-[9px] font-semibold text-muted/70">
+              <span className="text-xs font-semibold text-muted">
                 {day.completed ? 'Xong' : day.scheduled ? 'Tập' : 'Nghỉ'}
               </span>
             </div>
@@ -281,12 +282,12 @@ export function HomePage() {
                   <ExerciseArt exercise={exercise} className="h-12 w-14 shrink-0 rounded-xl" decoration={false} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-extrabold text-ink">{exercise.nameVi}</p>
-                    <p className="text-[11px] font-semibold text-muted">
+                    <p className="text-xs font-semibold text-muted">
                       {best.direction === 'lower_better' ? 'Nhanh nhất' : 'Kỷ lục'} ·{' '}
                       {formatRecordValue(best.metric, best.value)}
                     </p>
                   </div>
-                  <span className="grid h-9 w-9 place-items-center rounded-full bg-sun-soft text-[#9C6B00]">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-sun-soft text-[#8A5C00]">
                     <Icon name="star" filled className="h-5 w-5" />
                   </span>
                 </Link>
@@ -295,7 +296,7 @@ export function HomePage() {
           </div>
         ) : (
           <Card className="flex items-center gap-3 p-4">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sun-soft text-[#9C6B00]">
+            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sun-soft text-[#8A5C00]">
               <Icon name="star" className="h-6 w-6" />
             </div>
             <div className="flex-1">
@@ -313,7 +314,7 @@ export function HomePage() {
           <Icon name="info" className="h-4 w-4" />
           Mẹo cho bố mẹ
         </div>
-        <p className="mt-1 text-xs font-semibold leading-relaxed text-teal-dark/80">
+        <p className="mt-1 text-xs font-semibold leading-relaxed text-teal-dark">
           WHO khuyến nghị trẻ 5–17 tuổi vận động khoảng 60 phút mỗi ngày và có hoạt động mạnh ít
           nhất 3 ngày/tuần. Buổi tập của StrongKids là một phần vui vẻ trong tổng vận động đó.
         </p>

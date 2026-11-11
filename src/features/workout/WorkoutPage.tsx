@@ -375,7 +375,7 @@ export function WorkoutPage() {
                 style={{ width: `${Math.round(progress * 100)}%` }}
               />
             </div>
-            <p className="mt-1 text-center text-[10px] font-extrabold uppercase tracking-[0.14em] text-muted">
+            <p className="mt-1 text-center text-xs font-extrabold uppercase tracking-[0.14em] text-muted">
               {stage === 'intro'
                 ? `${plan?.durationMin} phút vận động`
                 : `Bước ${Math.min(stepIndex + 1, steps.length)}/${steps.length}`}
@@ -395,7 +395,7 @@ export function WorkoutPage() {
         {!online && (
           <div
             role="status"
-            className="mb-2 rounded-2xl bg-ink px-3 py-2 text-[11px] font-bold leading-snug text-white"
+            className="mb-2 rounded-2xl bg-ink px-3 py-2 text-xs font-bold leading-snug text-white"
           >
             Đang offline. Buổi tập và kết quả vẫn được lưu trên thiết bị này.
           </div>
@@ -450,8 +450,10 @@ export function WorkoutPage() {
           <div
             role="status"
             className={cx(
-              'flex items-center gap-3 rounded-3xl px-4 py-3 text-white shadow-xl',
-              toast.fresh ? 'bg-[linear-gradient(120deg,#FF7A59,#FFC94A)]' : 'bg-ink',
+              'flex items-center gap-3 rounded-3xl px-4 py-3 shadow-xl',
+              toast.fresh
+                ? 'bg-[linear-gradient(120deg,#FF7A59,#FFC94A)] text-[#1B2F43]'
+                : 'bg-ink text-white',
             )}
           >
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/20">
@@ -459,7 +461,7 @@ export function WorkoutPage() {
             </span>
             <div className="min-w-0">
               <p className="text-sm font-black">{toast.title}</p>
-              <p className="text-[11px] font-bold leading-snug text-white/90">{toast.detail}</p>
+              <p className="text-xs font-bold leading-snug">{toast.detail}</p>
             </div>
           </div>
         </div>
@@ -557,7 +559,7 @@ function IntroScreen({
   return (
     <div className="flex flex-1 flex-col">
       <div className="animate-pop overflow-hidden rounded-[2rem] bg-white shadow-[0_18px_40px_-24px_rgba(36,59,83,0.4)]">
-        <ExerciseArt exercise={exercise} className="h-48 w-full" />
+        <ExerciseArt exercise={exercise} priority className="h-48 w-full" />
         <div className="p-5">
           <div className="flex flex-wrap gap-1.5">
             <Badge tone="coral">{plan.title}</Badge>
@@ -574,7 +576,7 @@ function IntroScreen({
 
           <div className="mt-4 space-y-2">
             <PlanRow
-              tint="bg-sun-soft text-[#9C6B00]"
+              tint="bg-sun-soft text-[#8A5C00]"
               icon="flame"
               title="Khởi động"
               detail={`${warmups.length} bài · làm nóng cơ thể`}
@@ -593,7 +595,7 @@ function IntroScreen({
             />
           </div>
 
-          <div className="mt-4 rounded-2xl bg-cream p-3 text-[11px] font-semibold leading-relaxed text-muted">
+          <div className="mt-4 rounded-2xl bg-cream p-3 text-xs font-semibold leading-relaxed text-muted">
             Bố mẹ ngồi gần, quan sát bé và cùng đếm nhé. Bé mệt thì bấm “Bé mệt” bất cứ lúc nào —
             không bị trừ sao.
           </div>
@@ -632,7 +634,7 @@ function PlanRow({
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-extrabold text-ink">{title}</p>
-        <p className="text-[11px] font-semibold text-muted">{detail}</p>
+        <p className="text-xs font-semibold text-muted">{detail}</p>
       </div>
     </div>
   )
@@ -662,14 +664,14 @@ function CountdownScreen({
   return (
     <div className="flex flex-1 flex-col items-center justify-center text-center">
       <div className="animate-float w-full max-w-[280px]">
-        <ExerciseArt exercise={exercise} className="mx-auto h-40 w-full rounded-[2rem]" />
+        <ExerciseArt exercise={exercise} priority className="mx-auto h-40 w-full rounded-[2rem]" />
       </div>
       <p className="mt-5 text-xs font-extrabold uppercase tracking-[0.2em] text-muted">
         {count > 0 ? 'Chuẩn bị nhé' : 'Bắt đầu!'}
       </p>
       <p
         key={count}
-        className="display-title animate-pop mt-1 text-[92px] leading-none text-coral"
+        className="display-title animate-pop mt-1 text-[92px] leading-none text-coral-dark"
         aria-live="assertive"
       >
         {count > 0 ? count : 'GO!'}
@@ -732,7 +734,7 @@ function StepScreen({
           <div className="mt-4 flex items-center gap-3 rounded-3xl bg-white p-3 shadow-sm">
             <ExerciseArt exercise={next} className="h-14 w-16 shrink-0 rounded-xl" decoration={false} />
             <div className="text-left">
-              <p className="text-[10px] font-extrabold uppercase tracking-wide text-muted">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-muted">
                 Sắp tới
               </p>
               <p className="text-sm font-extrabold text-ink">{next.nameVi}</p>
@@ -781,7 +783,7 @@ function StepScreen({
     <div className="flex flex-1 flex-col">
       <div className="animate-pop overflow-hidden rounded-[2rem] bg-white shadow-[0_18px_40px_-24px_rgba(36,59,83,0.4)]">
         <div className="relative">
-          <ExerciseArt exercise={exercise} className="h-40 w-full sm:h-44" />
+          <ExerciseArt exercise={exercise} priority className="h-40 w-full sm:h-44" />
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
             <Badge tone={isMain ? 'coral' : 'sun'}>{blockLabel}</Badge>
             {isMain && (
@@ -800,7 +802,7 @@ function StepScreen({
             {exercise.cuesVi.map((cue) => (
               <span
                 key={cue}
-                className="rounded-full bg-cream px-2.5 py-1 text-[11px] font-bold text-ink/80"
+                className="rounded-full bg-cream px-2.5 py-1 text-xs font-bold text-ink/80"
               >
                 {cue}
               </span>
@@ -837,7 +839,7 @@ function StepScreen({
               <span className="display-title text-[52px] leading-none text-ink">
                 {Math.ceil(left)}
               </span>
-              <span className="mt-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-muted">
+              <span className="mt-1 text-xs font-extrabold uppercase tracking-[0.16em] text-muted">
                 giây còn lại
               </span>
             </ProgressRing>
@@ -857,7 +859,7 @@ function StepScreen({
         </div>
 
         {next && (
-          <p className="mt-3 max-w-[300px] truncate text-[11px] font-semibold text-muted">
+          <p className="mt-3 max-w-[300px] truncate text-xs font-semibold text-muted">
             Tiếp theo: <span className="font-extrabold text-ink/70">{next.nameVi}</span>
           </p>
         )}
@@ -883,7 +885,7 @@ function RepCounter({
 
   return (
     <div className="w-full text-center">
-      <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-muted">
+      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-muted">
         Đếm số lần
       </p>
       <div className="mt-2 flex items-center justify-center gap-4">
@@ -896,13 +898,13 @@ function RepCounter({
           <Icon name="minus" className="h-6 w-6" />
         </button>
         <div className="min-w-[110px]">
-          <span className="display-title block text-[68px] leading-none text-coral">{value}</span>
+          <span className="display-title block text-[68px] leading-none text-coral-dark">{value}</span>
           <span className="text-xs font-extrabold uppercase tracking-wide text-muted">lần</span>
         </div>
         <button
           type="button"
           onClick={() => change(1)}
-          className="focus-ring grid h-14 w-14 place-items-center rounded-full bg-teal text-white active:scale-95"
+          className="focus-ring grid h-14 w-14 place-items-center rounded-full bg-teal-dark text-white active:scale-95"
           aria-label="Thêm một lần"
         >
           <Icon name="plus" className="h-6 w-6" />
@@ -933,7 +935,7 @@ function StopwatchCounter({
 }) {
   return (
     <div className="w-full text-center">
-      <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-muted">
+      <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-muted">
         Bấm giờ
       </p>
       <span className="display-title mt-2 block text-[64px] leading-none text-teal-dark">
@@ -965,7 +967,7 @@ function TiredRestOverlay({ onDone }: { onDone: () => void }) {
       </div>
       <p className="display-title mt-4 text-2xl text-ink">Nghỉ một chút nhé</p>
       <p className="mt-1 text-sm font-semibold text-muted">Hít vào thật sâu… thở ra chậm…</p>
-      <p className="display-title mt-4 text-[64px] leading-none text-teal">{Math.ceil(left)}</p>
+      <p className="display-title mt-4 text-[64px] leading-none text-teal-dark">{Math.ceil(left)}</p>
       <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-muted">giây</p>
       <Button className="mt-6" variant="teal" onClick={onDone}>
         Bé khoẻ rồi, tập tiếp!
@@ -1032,18 +1034,18 @@ function SummaryScreen({
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="animate-pop rounded-[2rem] bg-[linear-gradient(150deg,#FF7A59,#FF9A5C_55%,#FFC94A)] p-6 text-center text-white shadow-[0_20px_44px_-24px_rgba(232,91,58,0.8)]">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white/20">
+      <div className="animate-pop rounded-[2rem] bg-[linear-gradient(150deg,#FF7A59,#FF9A5C_55%,#FFC94A)] p-6 text-center text-[#1B2F43] shadow-[0_20px_44px_-24px_rgba(232,91,58,0.8)]">
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white/30">
           <Icon name="sparkles" className="h-8 w-8" />
         </div>
-        <p className="mt-3 text-xs font-extrabold uppercase tracking-[0.2em] text-white/85">
+        <p className="mt-3 text-xs font-extrabold uppercase tracking-[0.2em]">
           {endedEarly ? 'Mình nghỉ sớm một chút' : 'Hoàn thành buổi tập'}
         </p>
         <h1 className="display-title mt-1 text-[30px] leading-tight">Giỏi quá, bé ơi!</h1>
         <div className="mt-4">
           <Stars count={stars} />
         </div>
-        <p className="mt-3 text-sm font-bold text-white/90">
+        <p className="mt-3 text-sm font-bold">
           {endedEarly
             ? 'Nghỉ khi thấy mệt là điều rất đúng. Mai mình chơi tiếp nhé!'
             : 'Mỗi ngày vận động là một ngày bé khoẻ hơn.'}
@@ -1053,7 +1055,7 @@ function SummaryScreen({
       <div className="mt-4 grid grid-cols-3 gap-2">
         <StatTile label="Phút vận động" value={`${minutes}`} tint="bg-mint text-teal-dark" />
         <StatTile label="Bài tập" value={`${mainDone}/${mainTotal}`} tint="bg-peach text-coral-dark" />
-        <StatTile label="Kỷ lục mới" value={`${fresh.length}`} tint="bg-sun-soft text-[#9C6B00]" />
+        <StatTile label="Kỷ lục mới" value={`${fresh.length}`} tint="bg-sun-soft text-[#8A5C00]" />
       </div>
 
       <Card className="mt-4 p-4">
@@ -1071,7 +1073,7 @@ function SummaryScreen({
                 <span
                   className={cx(
                     'grid h-8 w-8 shrink-0 place-items-center rounded-full',
-                    record.isNewBest ? 'bg-sun text-[#7A5200]' : 'bg-white text-muted',
+                    record.isNewBest ? 'bg-sun text-[#6B4700]' : 'bg-white text-muted',
                   )}
                 >
                   <Icon name="star" filled={record.isNewBest} className="h-4 w-4" />
@@ -1094,8 +1096,8 @@ function SummaryScreen({
         )}
         {fresh.length > 0 && (
           <div className="mt-3 flex items-start gap-2 rounded-2xl bg-sun-soft/70 p-3">
-            <Icon name="sparkles" className="mt-0.5 h-4 w-4 shrink-0 text-[#9C6B00]" />
-            <p className="text-[11px] font-bold leading-relaxed text-[#7A5200]">
+            <Icon name="sparkles" className="mt-0.5 h-4 w-4 shrink-0 text-[#8A5C00]" />
+            <p className="text-xs font-bold leading-relaxed text-[#7A5200]">
               Kỷ lục mới đã được lưu lại. Lần sau bé thử vượt qua chính mình nhé!
             </p>
           </div>
@@ -1107,7 +1109,7 @@ function SummaryScreen({
           <Icon name="info" className="h-4 w-4" />
           Nhắc bố mẹ
         </div>
-        <p className="mt-1 text-xs font-semibold leading-relaxed text-teal-dark/80">
+        <p className="mt-1 text-xs font-semibold leading-relaxed text-teal-dark">
           Khen bé cụ thể (“con giữ thăng bằng tốt hơn hôm qua!”) thay vì chỉ khen kết quả. Nếu bé
           đau, chóng mặt hoặc thở gấp bất thường, hãy dừng lại và hỏi bác sĩ nhi.
         </p>
@@ -1139,7 +1141,7 @@ function StatTile({
   return (
     <div className={cx('rounded-2xl px-2 py-3 text-center', tint)}>
       <p className="display-title text-[22px] leading-none">{value}</p>
-      <p className="mt-1 text-[9px] font-extrabold uppercase leading-tight tracking-wide">
+      <p className="mt-1 text-xs font-extrabold uppercase leading-tight tracking-wide">
         {label}
       </p>
     </div>

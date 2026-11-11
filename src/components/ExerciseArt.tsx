@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Category, Exercise, Pose } from '../content/schema'
 
 interface Geometry {
@@ -140,9 +141,11 @@ interface Props {
   exercise: Exercise
   className?: string
   decoration?: boolean
+  /** Ảnh lớn ở màn hình đầu: tải ngay để không chậm LCP. */
+  priority?: boolean
 }
 
-export function ExerciseArt({ exercise, className, decoration = true }: Props) {
+function ArtFallback({ exercise, className, decoration = true }: Props) {
   const geometry = POSES[exercise.art.pose]
   const tint = TINTS[exercise.category]
   const { head, neck, hip, armL, armR, legL, legR } = geometry
@@ -276,5 +279,29 @@ export function ExerciseArt({ exercise, className, decoration = true }: Props) {
         </g>
       )}
     </svg>
+  )
+}
+
+export function ExerciseArt({ exercise, className, decoration = true, priority = false }: Props) {
+  const [failedSlug, setFailedSlug] = useState<string | null>(null)
+  const alt = `Minh hoạ ${exercise.nameVi}`
+
+  if (failedSlug === exercise.slug) {
+    return <ArtFallback exercise={exercise} className={className} decoration={decoration} />
+  }
+
+  return (
+    <img
+      src={`${import.meta.env.BASE_URL}art/${exercise.slug}.webp`}
+      alt={alt}
+      width={1024}
+      height={576}
+      className={`object-cover object-center bg-[#FFF8EE] ${className ?? ''}`}
+      loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : 'auto'}
+      decoding="async"
+      draggable={false}
+      onError={() => setFailedSlug(exercise.slug)}
+    />
   )
 }

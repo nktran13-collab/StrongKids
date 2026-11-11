@@ -143,11 +143,11 @@ type ButtonSize = 'sm' | 'md' | 'lg'
 
 const BUTTON_STYLES: Record<ButtonVariant, string> = {
   primary:
-    'bg-coral text-white shadow-[0_10px_24px_-12px_rgba(232,91,58,0.9)] hover:bg-coral-dark',
+    'bg-coral text-[#1B2F43] shadow-[0_10px_24px_-12px_rgba(232,91,58,0.9)] hover:bg-[#FF8F70]',
   secondary:
     'bg-white text-ink border-2 border-line hover:border-coral/40 hover:text-coral-dark',
   ghost: 'bg-transparent text-muted hover:bg-ink/5 hover:text-ink',
-  teal: 'bg-teal text-white shadow-[0_10px_24px_-12px_rgba(31,143,129,0.9)] hover:bg-teal-dark',
+  teal: 'bg-teal text-[#1B2F43] shadow-[0_10px_24px_-12px_rgba(31,143,129,0.9)] hover:bg-[#4BCDBD]',
   sun: 'bg-sun text-ink shadow-[0_10px_24px_-12px_rgba(232,169,59,0.9)] hover:bg-[#F5BC2F]',
   dark: 'bg-ink text-white hover:bg-[#1A2C3F]',
 }
@@ -211,8 +211,8 @@ export function Badge({
     neutral: 'bg-ink/5 text-muted',
     coral: 'bg-peach text-coral-dark',
     teal: 'bg-mint text-teal-dark',
-    sun: 'bg-sun-soft text-[#9C6B00]',
-    sky: 'bg-[#E3F3FE] text-[#2C7BB0]',
+    sun: 'bg-sun-soft text-[#8A5C00]',
+    sky: 'bg-[#E3F3FE] text-[#1F6A99]',
     grape: 'bg-[#ECE8FF] text-[#6350C4]',
     mint: 'bg-mint text-teal-dark',
   }
@@ -256,7 +256,7 @@ export function SegmentedControl<T extends string | number>({
         >
           <span className="block">{option.label}</span>
           {option.hint && (
-            <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-wide opacity-60">
+            <span className="mt-0.5 block text-xs font-semibold uppercase tracking-wide text-muted">
               {option.hint}
             </span>
           )}
@@ -297,7 +297,7 @@ export function TextInput({
   return (
     <input
       className={cx(
-        'focus-ring h-12 w-full rounded-2xl border-2 bg-white px-4 text-[15px] font-semibold text-ink placeholder:font-medium placeholder:text-muted/60',
+        'focus-ring h-12 w-full rounded-2xl border-2 bg-white px-4 text-[15px] font-semibold text-ink placeholder:font-medium placeholder:text-muted',
         invalid ? 'border-coral' : 'border-line focus:border-coral/60',
         className,
       )}
@@ -546,7 +546,7 @@ export function EmptyState({
 }) {
   return (
     <Card className="px-6 py-8 text-center">
-      <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-sun-soft text-[#9C6B00]">
+      <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-sun-soft text-[#8A5C00]">
         <Icon name="sparkles" className="h-7 w-7" />
       </div>
       <h3 className="display-title text-base text-ink">{title}</h3>

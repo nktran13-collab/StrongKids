@@ -116,7 +116,7 @@ export function OnboardingPage() {
           <div className="animate-slide-up space-y-4">
             <Card className="p-5">
               <div className="mb-5 flex items-center gap-4">
-                <div className="grid h-16 w-16 place-items-center rounded-[1.4rem] bg-sun-soft text-2xl font-black text-[#9C6B00]">
+                <div className="grid h-16 w-16 place-items-center rounded-[1.4rem] bg-sun-soft text-2xl font-black text-[#8A5C00]">
                   {(nickname.trim().slice(0, 1) || '?').toUpperCase()}
                 </div>
                 <div>
@@ -177,7 +177,7 @@ export function OnboardingPage() {
                 <Icon name="sparkles" className="h-4 w-4" />
                 Nhóm tuổi {BAND_LABEL[band]}
               </div>
-              <p className="mt-1 text-xs font-semibold leading-relaxed text-teal-dark/80">
+              <p className="mt-1 text-xs font-semibold leading-relaxed text-teal-dark">
                 {BAND_DESCRIPTION[band]}
               </p>
             </div>
@@ -243,7 +243,7 @@ export function OnboardingPage() {
             </Card>
 
             <div className="flex items-start gap-2.5 rounded-3xl bg-white/70 p-4 text-xs font-semibold leading-relaxed text-muted">
-              <Icon name="shield" className="mt-0.5 h-4 w-4 shrink-0 text-teal" />
+              <Icon name="shield" className="mt-0.5 h-4 w-4 shrink-0 text-teal-dark" />
               Chiều cao và cân nặng chỉ hiển thị trong khu phụ huynh, giúp theo dõi tăng trưởng
               của bé. App không đặt mục tiêu cân nặng và không tính calo.
             </div>
@@ -253,7 +253,7 @@ export function OnboardingPage() {
                 <Icon name="info" className="h-4 w-4" />
                 Gợi ý cho nhóm {BAND_LABEL[band]}
               </div>
-              <p className="mt-1 text-xs font-semibold leading-relaxed text-[#7A5200]/80">
+              <p className="mt-1 text-xs font-semibold leading-relaxed text-[#7A5200]">
                 Buổi tập {recommended} phút là vừa sức. Bé 5–12 tuổi cần khoảng 60 phút vận động
                 mỗi ngày, có thể chia thành nhiều lần chơi trong ngày.
               </p>
@@ -290,7 +290,7 @@ export function OnboardingPage() {
                     )}
                   >
                     <span className="block text-base font-black">{option.title}</span>
-                    <span className="mt-0.5 block text-[10px] font-bold">{option.days}</span>
+                    <span className="mt-0.5 block text-xs font-bold">{option.days}</span>
                   </button>
                 ))}
               </div>
@@ -340,7 +340,7 @@ export function OnboardingPage() {
                 <Icon name="heart" filled className="h-4 w-4" />
                 Nguyên tắc vui là chính
               </div>
-              <ul className="mt-1.5 space-y-1 text-xs font-semibold leading-relaxed text-coral-dark/80">
+              <ul className="mt-1.5 space-y-1 text-xs font-semibold leading-relaxed text-coral-dark">
                 <li>• Bé được nghỉ bất cứ lúc nào, không bị trừ sao.</li>
                 <li>• Bố mẹ tập cùng hoặc ngồi cạnh cổ vũ.</li>
                 <li>• Không so sánh với bạn khác, chỉ so với chính bé hôm qua.</li>
@@ -367,7 +367,7 @@ export function OnboardingPage() {
               Tạo hồ sơ và bắt đầu
             </Button>
           )}
-          <p className="mt-3 text-center text-[11px] font-semibold text-muted">
+          <p className="mt-3 text-center text-xs font-semibold text-muted">
             Bố mẹ có thể đổi lịch tập bất cứ lúc nào trong mục Lịch.
           </p>
         </div>

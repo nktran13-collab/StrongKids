@@ -31,7 +31,7 @@ export function PwaUpdateToast() {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-black">StrongKids có bản mới</p>
-          <p className="mt-0.5 text-[11px] font-semibold leading-snug text-white/80">
+          <p className="mt-0.5 text-xs font-semibold leading-snug text-white/80">
             Cập nhật khi bé không đang tập để nhận nội dung mới nhất.
           </p>
           <div className="mt-2.5 flex gap-2">

@@ -46,7 +46,7 @@ export function AppShell() {
               <span className="display-title block text-[19px] tracking-tight text-ink">
                 StrongKids
               </span>
-              <span className="mt-1 block text-[11px] font-bold uppercase tracking-[0.18em] text-muted">
+              <span className="mt-1 block text-xs font-bold uppercase tracking-[0.18em] text-muted">
                 Vận động vui khoẻ
               </span>
             </div>
@@ -57,7 +57,7 @@ export function AppShell() {
               className="focus-ring flex h-11 items-center gap-1.5 rounded-full bg-white px-3 text-sm font-extrabold text-ink shadow-sm"
               aria-label={`Chuỗi ${streak?.current ?? 0} ngày`}
             >
-              <span className={cx('text-coral', (streak?.current ?? 0) > 0 && 'animate-flame')}>
+              <span className={cx('text-coral-dark', (streak?.current ?? 0) > 0 && 'animate-flame')}>
                 <Icon name="flame" filled className="h-5 w-5" />
               </span>
               {streak?.current ?? 0}
@@ -75,7 +75,7 @@ export function AppShell() {
         {!online && (
           <div
             role="status"
-            className="mb-3 flex items-center gap-2 rounded-2xl bg-ink px-3 py-2 text-[11px] font-bold leading-snug text-white"
+            className="mb-3 flex items-center gap-2 rounded-2xl bg-ink px-3 py-2 text-xs font-bold leading-snug text-white"
           >
             <Icon name="info" className="h-4 w-4 shrink-0 text-sun" />
             Bạn đang offline. Bài tập vẫn chạy và kết quả được lưu trên thiết bị này.
@@ -96,8 +96,8 @@ export function AppShell() {
               end={item.to === '/'}
               className={({ isActive }) =>
                 cx(
-                  'focus-ring flex flex-1 flex-col items-center gap-1 rounded-2xl py-2 text-[11px] font-bold transition',
-                  isActive ? 'text-coral' : 'text-muted hover:text-ink',
+                  'focus-ring flex flex-1 flex-col items-center gap-1 rounded-2xl py-2 text-xs font-bold transition',
+                  isActive ? 'text-coral-dark' : 'text-muted hover:text-ink',
                 )
               }
             >
@@ -109,7 +109,7 @@ export function AppShell() {
                       isActive ? 'bg-peach text-coral-dark' : 'text-muted',
                     )}
                   >
-                    <Icon name={item.icon} filled={isActive} />
+                    <Icon name={item.icon} filled={isActive && item.icon !== 'book'} />
                   </span>
                   {item.label}
                 </>

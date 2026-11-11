@@ -97,16 +97,16 @@ export function SchedulePage() {
 
       <div className="mb-4 grid grid-cols-3 gap-2">
         <Card className="p-3 text-center">
-          <p className="display-title text-2xl text-coral">{streak.current}</p>
-          <p className="text-[10px] font-extrabold uppercase tracking-wide text-muted">Chuỗi hiện tại</p>
+          <p className="display-title text-2xl text-coral-dark">{streak.current}</p>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-muted">Chuỗi hiện tại</p>
         </Card>
         <Card className="p-3 text-center">
           <p className="display-title text-2xl text-teal-dark">{streak.longest}</p>
-          <p className="text-[10px] font-extrabold uppercase tracking-wide text-muted">Dài nhất</p>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-muted">Dài nhất</p>
         </Card>
         <Card className="p-3 text-center">
-          <p className="display-title text-2xl text-[#9C6B00]">{streak.thisWeekCompleted}</p>
-          <p className="text-[10px] font-extrabold uppercase tracking-wide text-muted">Tuần này</p>
+          <p className="display-title text-2xl text-[#8A5C00]">{streak.thisWeekCompleted}</p>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-muted">Tuần này</p>
         </Card>
       </div>
 
@@ -129,7 +129,7 @@ export function SchedulePage() {
               )}
             >
               <span className="block text-base font-black">{option.title}</span>
-              <span className="mt-0.5 block text-[10px] font-bold">{option.days}</span>
+              <span className="mt-0.5 block text-xs font-bold">{option.days}</span>
             </button>
           ))}
         </div>
@@ -222,7 +222,7 @@ export function SchedulePage() {
           {WEEKDAY_SHORT.map((label) => (
             <span
               key={label}
-              className="text-center text-[10px] font-extrabold uppercase tracking-wide text-muted"
+              className="text-center text-xs font-extrabold uppercase tracking-wide text-muted"
             >
               {label}
             </span>
@@ -238,9 +238,9 @@ export function SchedulePage() {
                 key={cell.key}
                 className={cx(
                   'relative grid h-9 place-items-center rounded-xl text-xs font-bold',
-                  !cell.inMonth && 'opacity-30',
+                  !cell.inMonth && 'invisible',
                   completed
-                    ? 'bg-teal text-white'
+                    ? 'bg-teal-dark text-white'
                     : isToday
                       ? 'bg-peach text-coral-dark ring-2 ring-coral/40'
                       : scheduled
@@ -257,7 +257,7 @@ export function SchedulePage() {
           })}
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-[10px] font-bold text-muted">
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-bold text-muted">
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-teal" /> Đã tập
           </span>
@@ -272,12 +272,12 @@ export function SchedulePage() {
       </Card>
 
       <div className="mt-4 flex items-start gap-2.5 rounded-3xl bg-white/70 p-4 text-xs font-semibold leading-relaxed text-muted">
-        <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0 text-teal" />
+        <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0 text-teal-dark" />
         Hôm nay chưa tập sẽ không làm mất chuỗi. Bé chỉ cần hoàn thành buổi tiếp theo đúng lịch là
         chuỗi vẫn được nối tiếp.
       </div>
 
-      <p className="mt-3 px-2 text-center text-[11px] font-semibold text-muted">
+      <p className="mt-3 px-2 text-center text-xs font-semibold text-muted">
         Lịch được tính theo ngày trên thiết bị này.
       </p>
     </div>

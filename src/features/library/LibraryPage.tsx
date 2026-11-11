@@ -50,7 +50,7 @@ export function LibraryPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Tìm bài tập..."
-          className="focus-ring h-11 w-full rounded-2xl border-2 border-line bg-white pl-10 pr-4 text-sm font-semibold text-ink placeholder:text-muted/60"
+          className="focus-ring h-11 w-full rounded-2xl border-2 border-line bg-white pl-10 pr-4 text-sm font-semibold text-ink placeholder:text-muted"
         />
       </div>
 
@@ -79,7 +79,7 @@ export function LibraryPage() {
             className={cx(
               'focus-ring shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition',
               category === option
-                ? 'bg-coral text-white'
+                ? 'bg-coral-dark text-white'
                 : 'bg-white/70 text-muted hover:bg-white hover:text-ink',
             )}
           >
@@ -106,11 +106,11 @@ export function LibraryPage() {
                     decoration={false}
                   />
                   <div className="flex items-center justify-between gap-1">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wide text-muted">
+                    <span className="text-xs font-extrabold uppercase tracking-wide text-muted">
                       {CATEGORY_LABEL[exercise.category]}
                     </span>
                     {best && (
-                      <span className="flex items-center gap-0.5 text-[10px] font-extrabold text-[#9C6B00]">
+                      <span className="flex items-center gap-0.5 text-xs font-extrabold text-[#8A5C00]">
                         <Icon name="star" filled className="h-3 w-3" />
                         {best.direction === 'lower_better' ? 'Nhanh nhất' : 'Kỷ lục'}
                       </span>
@@ -119,7 +119,7 @@ export function LibraryPage() {
                   <p className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug text-ink">
                     {exercise.nameVi}
                   </p>
-                  <p className="mt-1 line-clamp-1 text-[11px] font-semibold text-muted">
+                  <p className="mt-1 line-clamp-1 text-xs font-semibold text-muted">
                     {exercise.shortVi}
                   </p>
                 </Card>
@@ -208,7 +208,7 @@ function ExerciseDetail({
         <div className="mt-2 space-y-1.5">
           {exercise.cuesVi.map((cue, index) => (
             <div key={cue} className="flex items-start gap-2.5 rounded-2xl bg-white p-2.5">
-              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sun-soft text-[11px] font-black text-[#9C6B00]">
+              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-sun-soft text-xs font-black text-[#8A5C00]">
                 {index + 1}
               </span>
               <p className="text-xs font-semibold leading-relaxed text-ink">{cue}</p>
@@ -222,7 +222,7 @@ function ExerciseDetail({
         <div>
           <h3 className="text-xs font-extrabold text-coral-dark">An toàn trước tiên</h3>
           {exercise.safetyVi.map((safety) => (
-            <p key={safety} className="mt-1 text-xs font-semibold leading-relaxed text-coral-dark/80">
+            <p key={safety} className="mt-1 text-xs font-semibold leading-relaxed text-coral-dark">
               {safety}
             </p>
           ))}
@@ -231,7 +231,7 @@ function ExerciseDetail({
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <div className="rounded-2xl bg-mint/70 p-3">
-          <p className="text-[10px] font-extrabold uppercase tracking-wide text-teal-dark/70">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-teal-dark">
             Dễ hơn
           </p>
           <p className="mt-1 text-xs font-semibold leading-relaxed text-teal-dark">
@@ -239,7 +239,7 @@ function ExerciseDetail({
           </p>
         </div>
         <div className="rounded-2xl bg-sun-soft/80 p-3">
-          <p className="text-[10px] font-extrabold uppercase tracking-wide text-[#9C6B00]/70">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-[#8A5C00]">
             Thử thách hơn
           </p>
           <p className="mt-1 text-xs font-semibold leading-relaxed text-[#7A5200]">
@@ -249,7 +249,7 @@ function ExerciseDetail({
       </div>
 
       {params && (
-        <p className="mt-3 text-center text-[11px] font-semibold text-muted">
+        <p className="mt-3 text-center text-xs font-semibold text-muted">
           Gợi ý cho nhóm {BAND_LABEL[band]}: {params.target} {exercise.metric === 'reps' ? 'lần' : 'giây'} ·
           nghỉ {params.restSec} giây giữa hiệp
         </p>

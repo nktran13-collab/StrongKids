@@ -35,7 +35,7 @@ export function AuthPage() {
           <Logo size={46} />
           <div>
             <div className="display-title text-xl leading-none text-ink">StrongKids</div>
-            <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.2em] text-muted">
+            <div className="mt-1 text-xs font-bold uppercase tracking-[0.2em] text-muted">
               Vận động vui khoẻ
             </div>
           </div>
@@ -49,7 +49,7 @@ export function AuthPage() {
           <h1 className="display-title text-[34px] leading-[1.08] text-ink">
             Vận động vui,
             <br />
-            <span className="text-coral">lớn lên khoẻ.</span>
+            <span className="text-coral-dark">lớn lên khoẻ.</span>
           </h1>
           <p className="mt-3 max-w-[420px] text-[15px] font-medium leading-relaxed text-muted">
             Những buổi tập ngắn 20–30 phút, đầy trò chơi và tiếng cười. Bố mẹ đồng hành, bé tự
@@ -60,6 +60,7 @@ export function AuthPage() {
         <div className="relative mt-6">
           <ExerciseArt
             exercise={heroExercise}
+            priority
             className="h-56 w-full rounded-[2rem] shadow-[0_20px_60px_-30px_rgba(36,59,83,0.5)]"
           />
           <div className="animate-float absolute -left-2 top-4 rounded-2xl bg-white px-3 py-2 shadow-lg">
@@ -134,8 +135,8 @@ export function AuthPage() {
           </button>
         </Card>
 
-        <div className="mt-5 flex items-start gap-2 px-2 text-[11px] font-semibold leading-relaxed text-muted">
-          <Icon name="shield" className="mt-0.5 h-4 w-4 shrink-0 text-teal" />
+        <div className="mt-5 flex items-start gap-2 px-2 text-xs font-semibold leading-relaxed text-muted">
+          <Icon name="shield" className="mt-0.5 h-4 w-4 shrink-0 text-teal-dark" />
           StrongKids khuyến khích vận động vui khoẻ, không dùng calo hay cân nặng mục tiêu. Các
           chỉ số tăng trưởng chỉ mang tính tham khảo, không thay thế tư vấn bác sĩ nhi.
         </div>

@@ -126,7 +126,7 @@ function PinGate({ onUnlocked }: { onUnlocked: () => void }) {
         <div className="mt-6 rounded-2xl bg-cream p-3">
           <div className="flex items-start gap-2">
             <Icon name="shield" className="mt-0.5 h-4 w-4 shrink-0 text-teal-dark" />
-            <p className="text-[11px] font-semibold leading-relaxed text-muted">
+            <p className="text-xs font-semibold leading-relaxed text-muted">
               StrongKids chỉ lưu biệt danh, năm/tháng sinh, chiều cao và cân nặng của bé. Không ảnh,
               không họ tên, không địa chỉ. Mã PIN không thay thế mật khẩu thiết bị.
             </p>
@@ -232,17 +232,17 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
         <div className="mt-4 grid grid-cols-3 gap-2">
           <div className="rounded-2xl bg-cream p-3 text-center">
             <p className="display-title text-xl text-ink">{child.heightCm}</p>
-            <p className="text-[10px] font-extrabold uppercase tracking-wide text-muted">cm cao</p>
+            <p className="text-xs font-extrabold uppercase tracking-wide text-muted">cm cao</p>
           </div>
           <div className="rounded-2xl bg-cream p-3 text-center">
             <p className="display-title text-xl text-ink">{child.weightKg}</p>
-            <p className="text-[10px] font-extrabold uppercase tracking-wide text-muted">kg</p>
+            <p className="text-xs font-extrabold uppercase tracking-wide text-muted">kg</p>
           </div>
           <div className="rounded-2xl bg-sun-soft p-3 text-center">
             <p className="display-title text-xl text-[#7A5200]">
               {bmi ? formatBmi(bmi.bmi) : '—'}
             </p>
-            <p className="text-[10px] font-extrabold uppercase tracking-wide text-[#9C6B00]">BMI</p>
+            <p className="text-xs font-extrabold uppercase tracking-wide text-[#8A5C00]">BMI</p>
           </div>
         </div>
 
@@ -251,7 +251,7 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
             <div className="mt-3 rounded-2xl bg-white p-3 ring-1 ring-line">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-muted">
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-muted">
                     Bách phân vị BMI theo tuổi
                   </p>
                   <p className="display-title mt-0.5 text-2xl text-ink">
@@ -263,18 +263,18 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
                   href={WHO_BMI_SOURCE.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="focus-ring rounded-lg px-2 py-1 text-[10px] font-extrabold text-teal-dark underline decoration-dotted underline-offset-2"
+                  className="focus-ring rounded-lg px-2 py-1 text-xs font-extrabold text-teal-dark underline decoration-dotted underline-offset-2"
                 >
                   WHO 2007
                 </a>
               </div>
-              <p className="mt-1 text-[11px] font-semibold leading-relaxed text-muted">
+              <p className="mt-1 text-xs font-semibold leading-relaxed text-muted">
                 Vị trí của bé so với 100 trẻ cùng tuổi, cùng giới. Ước tính cho{' '}
                 {child.sex === 'male' ? 'bé trai' : 'bé gái'} {formatAgeMonths(bmiPercentile.ageMonths)}{' '}
                 theo tháng sinh.
               </p>
               {percentileNote(bmiPercentile.percentile) && (
-                <p className="mt-2 rounded-xl bg-sun-soft px-2.5 py-2 text-[11px] font-semibold leading-relaxed text-[#7A5200]">
+                <p className="mt-2 rounded-xl bg-sun-soft px-2.5 py-2 text-xs font-semibold leading-relaxed text-[#7A5200]">
                   {percentileNote(bmiPercentile.percentile)}
                 </p>
               )}
@@ -282,7 +282,7 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
           ) : (
             <div className="mt-3 flex items-start gap-2 rounded-2xl bg-white p-3 ring-1 ring-line">
               <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
-              <p className="text-[11px] font-semibold leading-relaxed text-muted">
+              <p className="text-xs font-semibold leading-relaxed text-muted">
                 {percentileUnavailable} BMI vẫn được hiển thị và lưu bình thường.
               </p>
             </div>
@@ -291,7 +291,7 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
 
         <div className="mt-3 flex items-start gap-2 rounded-2xl bg-white p-3 ring-1 ring-line">
           <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
-          <p className="text-[11px] font-semibold leading-relaxed text-muted">{BMI_DISCLAIMER}</p>
+          <p className="text-xs font-semibold leading-relaxed text-muted">{BMI_DISCLAIMER}</p>
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -309,13 +309,13 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
       <Card className="mt-3 p-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-extrabold text-ink">Tăng trưởng của bé</h2>
-          <span className="text-[11px] font-semibold text-muted">{measurements.length} lần đo</span>
+          <span className="text-xs font-semibold text-muted">{measurements.length} lần đo</span>
         </div>
 
         {measurements.length >= 2 ? (
           <GrowthChart points={measurements} />
         ) : (
-          <div className="rounded-2xl bg-cream p-3 text-[11px] font-semibold leading-relaxed text-muted">
+          <div className="rounded-2xl bg-cream p-3 text-xs font-semibold leading-relaxed text-muted">
             Cần ít nhất 2 lần đo để vẽ đường xu hướng. Hãy ghi chiều cao, cân nặng mỗi 1–2 tháng để
             theo dõi cùng bác sĩ nhi.
           </div>
@@ -327,7 +327,7 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
             return (
               <div
                 key={item.id}
-                className="flex items-center gap-2 rounded-2xl bg-cream px-3 py-2 text-[11px] font-bold text-muted"
+                className="flex items-center gap-2 rounded-2xl bg-cream px-3 py-2 text-xs font-bold text-muted"
               >
                 <span className="w-16 shrink-0">{formatViDate(item.dateKey, false)}</span>
                 <span className="flex-1">{item.heightCm} cm</span>
@@ -344,7 +344,7 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
       <div className="mt-3 grid grid-cols-2 gap-2">
         <StatCard label="Buổi hoàn thành" value={`${completed.length}`} icon="check" tone="bg-mint text-teal-dark" />
         <StatCard label="Phút vận động" value={`${totalMinutes}`} icon="clock" tone="bg-peach text-coral-dark" />
-        <StatCard label="Chuỗi hiện tại" value={`${streak.current} ngày`} icon="flame" tone="bg-sun-soft text-[#9C6B00]" />
+        <StatCard label="Chuỗi hiện tại" value={`${streak.current} ngày`} icon="flame" tone="bg-sun-soft text-[#8A5C00]" />
         <StatCard label="Chuỗi dài nhất" value={`${streak.longest} ngày`} icon="star" tone="bg-[#ECE8FF] text-[#6350C4]" />
       </div>
 
@@ -353,13 +353,13 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
           <Icon name="heart" className="h-4 w-4" />
           Khuyến nghị vận động
         </div>
-        <p className="mt-1 text-xs font-semibold leading-relaxed text-teal-dark/85">
+        <p className="mt-1 text-xs font-semibold leading-relaxed text-teal-dark">
           WHO khuyến nghị trẻ 5–17 tuổi vận động aerobic trung bình–mạnh khoảng 60 phút mỗi ngày,
           kèm hoạt động mạnh và tăng cường cơ/xương ít nhất 3 ngày mỗi tuần. Buổi tập StrongKids
           (20–30 phút) là một phần trong tổng vận động đó — không thay thế vui chơi và vận động
           hằng ngày của bé.
         </p>
-        <p className="mt-2 text-[11px] font-semibold leading-relaxed text-teal-dark/70">
+        <p className="mt-2 text-xs font-semibold leading-relaxed text-teal-dark">
           Trẻ đang lớn không cần ăn kiêng để “giảm cân”. Ưu tiên đủ chất, ngủ đủ và vận động vui vẻ.
           Nếu bạn lo lắng về tăng trưởng của bé, hãy trao đổi với bác sĩ nhi.
         </p>
@@ -373,13 +373,13 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
           <h2 className="text-sm font-extrabold text-ink">Cài StrongKids lên điện thoại</h2>
         </div>
         {isStandalone ? (
-          <p className="mt-2 text-[11px] font-semibold leading-relaxed text-muted">
+          <p className="mt-2 text-xs font-semibold leading-relaxed text-muted">
             StrongKids đang chạy toàn màn hình trên thiết bị này. Bé vẫn xem bài và tập được khi
             không có mạng; kết quả được lưu lại trên máy.
           </p>
         ) : canInstall ? (
           <>
-            <p className="mt-2 text-[11px] font-semibold leading-relaxed text-muted">
+            <p className="mt-2 text-xs font-semibold leading-relaxed text-muted">
               Mở nhanh hơn, chạy toàn màn hình và dùng được khi không có mạng. Dữ liệu vẫn chỉ nằm
               trên thiết bị của bạn.
             </p>
@@ -396,7 +396,7 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
             </Button>
           </>
         ) : (
-          <p className="mt-2 text-[11px] font-semibold leading-relaxed text-muted">
+          <p className="mt-2 text-xs font-semibold leading-relaxed text-muted">
             Trên iPhone: mở bằng Safari → nút Chia sẻ → “Thêm vào Màn hình chính”. Trên Android:
             mở menu ⋮ → “Cài đặt ứng dụng” hoặc “Thêm vào Màn hình chính”.
           </p>
@@ -405,7 +405,7 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
 
       <Card className="mt-3 p-4">
         <h2 className="text-sm font-extrabold text-ink">Dữ liệu & quyền riêng tư</h2>
-        <div className="mt-2 space-y-1.5 text-[11px] font-semibold leading-relaxed text-muted">
+        <div className="mt-2 space-y-1.5 text-xs font-semibold leading-relaxed text-muted">
           <p>
             Tài khoản phụ huynh: <span className="font-extrabold text-ink">{data.parent?.email}</span>
           </p>
@@ -436,7 +436,7 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
         </div>
       </Card>
 
-      <p className="mt-3 px-2 text-center text-[10px] font-semibold leading-relaxed text-muted/80">
+      <p className="mt-3 px-2 text-center text-xs font-semibold leading-relaxed text-muted">
         StrongKids là công cụ hỗ trợ vận động, không phải thiết bị y tế và không đưa ra chẩn đoán.
         Nội dung bài tập cần được bác sĩ nhi hoặc chuyên gia vận động cho trẻ xem xét trước khi
         dùng đại trà.
@@ -509,7 +509,7 @@ function StatCard({
         <span className="display-title text-xl leading-none">{value}</span>
         <Icon name={icon} className="h-4 w-4 opacity-70" />
       </div>
-      <p className="mt-1 text-[10px] font-extrabold uppercase tracking-wide opacity-80">{label}</p>
+      <p className="mt-1 text-xs font-extrabold uppercase tracking-wide opacity-80">{label}</p>
     </div>
   )
 }
@@ -572,7 +572,7 @@ function GrowthChart({ points }: { points: Measurement[] }) {
           ))}
         </svg>
       </div>
-      <div className="mt-1 flex justify-between px-1 text-[10px] font-bold text-muted">
+      <div className="mt-1 flex justify-between px-1 text-xs font-bold text-muted">
         <span>{formatViDate(recent[0].dateKey, false)}</span>
         <span>Cân nặng (kg)</span>
         <span>{formatViDate(recent[recent.length - 1].dateKey, false)}</span>
