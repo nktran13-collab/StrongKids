@@ -9,12 +9,17 @@ export interface BmiResult {
  * biểu đồ BMI-for-age của WHO theo tuổi và giới tính — không dùng ngưỡng
  * BMI của người lớn để phân loại.
  */
-export function calculateBmi(heightCm: number, weightKg: number): BmiResult | null {
+export function calculateExactBmi(heightCm: number, weightKg: number): number | null {
   if (!Number.isFinite(heightCm) || !Number.isFinite(weightKg)) return null
   if (heightCm <= 0 || weightKg <= 0) return null
   const heightM = heightCm / 100
   const bmi = weightKg / (heightM * heightM)
-  if (!Number.isFinite(bmi)) return null
+  return Number.isFinite(bmi) ? bmi : null
+}
+
+export function calculateBmi(heightCm: number, weightKg: number): BmiResult | null {
+  const bmi = calculateExactBmi(heightCm, weightKg)
+  if (bmi === null) return null
   return {
     bmi: Math.round(bmi * 10) / 10,
     heightCm,
