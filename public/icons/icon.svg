@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="StrongKids">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF7A59" />
+      <stop offset="1" stop-color="#FFB25C" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg)" />
+  <circle cx="392" cy="120" r="26" fill="#FFC94A" />
+  <path
+    d="M256 118l40.5 82.1 90.6 13.2-65.5 63.9 15.5 90.2L256 323.8l-81.1 43.6 15.5-90.2-65.5-63.9 90.6-13.2z"
+    fill="#FFF8EE"
+  />
+  <circle cx="164" cy="404" r="14" fill="#2FB8A6" />
+  <circle cx="356" cy="392" r="10" fill="#FFF8EE" opacity="0.75" />
+</svg>

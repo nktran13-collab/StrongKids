@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #fff8ee;
+  --color-paper: #ffffff;
+  --color-ink: #243b53;
+  --color-muted: #6b7c93;
+  --color-line: #f0e4d4;
+  --color-coral: #ff7a59;
+  --color-coral-dark: #e85b3a;
+  --color-peach: #ffe3d6;
+  --color-teal: #2fb8a6;
+  --color-teal-dark: #1f8f81;
+  --color-mint: #ddf6f0;
+  --color-sun: #ffc94a;
+  --color-sun-soft: #fff3cd;
+  --color-sky: #6ec6f7;
+  --color-grape: #8c7ae6;
+  --font-sans: "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --radius-card: 1.75rem;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: var(--color-sun);
+  color: var(--color-ink);
+}
+
+/* Nền chấm bi ấm áp cho toàn app */
+.app-backdrop {
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(255, 201, 74, 0.22), transparent 32%),
+    radial-gradient(circle at 88% 12%, rgba(110, 198, 247, 0.18), transparent 30%),
+    radial-gradient(circle at 50% 105%, rgba(47, 184, 166, 0.12), transparent 42%),
+    radial-gradient(rgba(36, 59, 83, 0.06) 1px, transparent 1px);
+  background-size: auto, auto, auto, 22px 22px;
+}
+
+.card-surface {
+  background: var(--color-paper);
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 1px 0 rgba(36, 59, 83, 0.04),
+    0 12px 32px -18px rgba(36, 59, 83, 0.28);
+}
+
+.tap-scale {
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.tap-scale:active {
+  transform: scale(0.97);
+}
+
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 3px solid rgba(255, 122, 89, 0.5);
+  outline-offset: 3px;
+}
+
+/* Chữ tiêu đề hơi nghiêng, kiểu trẻ con */
+.display-title {
+  letter-spacing: -0.02em;
+  font-weight: 900;
+}
+
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+.animate-float {
+  animation: float-soft 4s ease-in-out infinite;
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateY(8px);
+  }
+  70% {
+    transform: scale(1.03) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.animate-pop {
+  animation: pop-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-slide-up {
+  animation: slide-up 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes flame-flicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(-2deg);
+  }
+  50% {
+    transform: scale(1.08) rotate(2deg);
+  }
+}
+.animate-flame {
+  animation: flame-flicker 1.8s ease-in-out infinite;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translateY(-10vh) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(105vh) rotate(720deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
+}
