@@ -2,15 +2,24 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import { getExercise } from '../content/catalog'
 import { bandForChild } from '../lib/age'
 import { todayKey } from '../lib/date'
 import { buildSessionPlan, type SessionPlan } from '../lib/generator'
+import {
+  deleteFamilyState,
+  fetchFamilyState,
+  saveFamilyState,
+  signInAnonymously,
+} from '../lib/cloud'
+import { cloudEnabled, supabase } from '../lib/supabase'
 import type {
   AppData,
   BestEntry,
@@ -22,7 +31,12 @@ import type {
   WorkoutSession,
 } from '../lib/types'
 
-const STORAGE_KEY = 'strongkids.data.v1'
+const LEGACY_KEY = 'strongkids.data.v1'
+const CACHE_PREFIX = 'strongkids.cache.v1.'
+const PENDING_PREFIX = 'strongkids.pending.v1.'
+const CONSENT_KEY = 'strongkids.consent.v1'
+
+export type CloudStatus = 'off' | 'demo' | 'idle' | 'saving' | 'saved' | 'offline' | 'error'
 
 function uid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
@@ -51,29 +65,157 @@ function emptyData(): AppData {
   }
 }
 
+function normalizeData(value: unknown): AppData | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Partial<AppData>
+  if (raw.version !== 1) return null
+  const base = emptyData()
+  return {
+    ...base,
+    ...raw,
+    version: 1,
+    parent: raw.parent && typeof raw.parent === 'object' ? raw.parent : null,
+    child: raw.child && typeof raw.child === 'object' ? raw.child : null,
+    measurements: Array.isArray(raw.measurements) ? raw.measurements : [],
+    schedule:
+      raw.schedule &&
+      Array.isArray(raw.schedule.weekdays) &&
+      typeof raw.schedule.durationMin === 'number'
+        ? raw.schedule
+        : base.schedule,
+    sessions: Array.isArray(raw.sessions) ? raw.sessions : [],
+    bests: raw.bests && typeof raw.bests === 'object' ? raw.bests : {},
+    pinHash: typeof raw.pinHash === 'string' ? raw.pinHash : null,
+    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : base.createdAt,
+  }
+}
+
+function readStorage(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function writeStorage(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    // Bộ nhớ đầy hoặc trình duyệt chặn: dữ liệu vẫn được giữ trong phiên hiện tại.
+  }
+}
+
+function removeStorage(key: string) {
+  try {
+    localStorage.removeItem(key)
+  } catch {
+    // Không xoá được thì bỏ qua.
+  }
+}
+
+function readCache(userId: string): AppData | null {
+  const raw = readStorage(CACHE_PREFIX + userId)
+  if (!raw) return null
+  try {
+    return normalizeData(JSON.parse(raw))
+  } catch {
+    return null
+  }
+}
+
+function writeCache(userId: string, data: AppData) {
+  writeStorage(CACHE_PREFIX + userId, JSON.stringify(data))
+}
+
+function clearCache(userId: string) {
+  removeStorage(CACHE_PREFIX + userId)
+  removeStorage(PENDING_PREFIX + userId)
+}
+
+function isPending(userId: string): boolean {
+  return readStorage(PENDING_PREFIX + userId) === '1'
+}
+
+function markPending(userId: string) {
+  writeStorage(PENDING_PREFIX + userId, '1')
+}
+
+function markSynced(userId: string) {
+  removeStorage(PENDING_PREFIX + userId)
+}
+
+function readConsent(email: string): string | null {
+  const raw = readStorage(CONSENT_KEY)
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw) as { email?: string; at?: string }
+    if (
+      typeof parsed.email === 'string' &&
+      parsed.email.trim().toLowerCase() === email.trim().toLowerCase() &&
+      typeof parsed.at === 'string'
+    ) {
+      return parsed.at
+    }
+  } catch {
+    // Bản ghi hỏng thì coi như chưa có.
+  }
+  return null
+}
+
+function rememberConsent(email: string): string {
+  const at = new Date().toISOString()
+  writeStorage(CONSENT_KEY, JSON.stringify({ email, at, version: 1 }))
+  return at
+}
+
+function withParent(data: AppData, email: string, consentAt: string | null): AppData {
+  const now = new Date().toISOString()
+  if (!data.parent) {
+    return { ...data, parent: { email, consentedAt: consentAt ?? now } }
+  }
+  if (!data.parent.email || data.parent.email.toLowerCase() !== email.toLowerCase()) {
+    return { ...data, parent: { ...data.parent, email } }
+  }
+  return data
+}
+
+/** Dữ liệu cũ trước khi có tài khoản: chỉ nhận nếu đúng email đang đăng nhập. */
+function legacyFor(email: string): AppData | null {
+  const raw = readStorage(LEGACY_KEY)
+  if (!raw) return null
+  try {
+    const parsed = normalizeData(JSON.parse(raw))
+    if (!parsed?.parent) return null
+    const stored = parsed.parent.email.trim().toLowerCase()
+    if (stored === 'demo@strongkids.vn') return null
+    if (stored !== email.trim().toLowerCase()) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function removeLegacy() {
+  removeStorage(LEGACY_KEY)
+}
+
+/** Sau khi magic link đổi mã xong, bỏ ?code khỏi thanh địa chỉ. */
+function removeAuthCodeFromUrl() {
+  const url = new URL(window.location.href)
+  if (!url.searchParams.has('code')) return
+  url.searchParams.delete('code')
+  url.searchParams.delete('state')
+  const search = url.searchParams.toString()
+  window.history.replaceState(
+    {},
+    '',
+    `${url.pathname}${search ? `?${search}` : ''}${url.hash}`,
+  )
+}
+
 function bestKey(slug: string, metric: string): string {
   return `${slug}:${metric}`
-}
-
-function loadData(): AppData {
-  if (typeof localStorage === 'undefined') return emptyData()
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return emptyData()
-    const parsed = JSON.parse(raw) as AppData
-    if (parsed.version !== 1) return emptyData()
-    return { ...emptyData(), ...parsed }
-  } catch {
-    return emptyData()
-  }
-}
-
-function persist(data: AppData) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  } catch {
-    // Bộ nhớ đầy hoặc trình duyệt chặn: app vẫn chạy trong phiên hiện tại.
-  }
 }
 
 function addResultToBests(
@@ -223,7 +365,10 @@ export interface OnboardingInput {
 
 interface StoreValue {
   data: AppData
-  signIn: (email: string) => void
+  authReady: boolean
+  accountEmail: string | null
+  cloudStatus: CloudStatus
+  startWithEmail: (email: string) => Promise<{ ok: boolean; message: string }>
   startDemo: () => void
   completeOnboarding: (input: OnboardingInput) => void
   setSchedule: (schedule: Schedule) => void
@@ -246,40 +391,387 @@ interface StoreValue {
   setPin: (pin: string) => void
   verifyPin: (pin: string) => boolean
   exportData: () => string
-  resetAll: () => void
+  resetAll: () => Promise<{ ok: boolean; message: string }>
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<AppData>(() => loadData())
-  const dataRef = useRef(data)
+  const [data, setData] = useState<AppData>(emptyData)
+  const [authReady, setAuthReady] = useState(!cloudEnabled)
+  const [accountEmail, setAccountEmail] = useState<string | null>(null)
+  const [cloudStatus, setCloudStatus] = useState<CloudStatus>(cloudEnabled ? 'idle' : 'off')
 
-  const update = useCallback((updater: (current: AppData) => AppData) => {
-    const next = updater(dataRef.current)
-    dataRef.current = next
-    setData(next)
-    persist(next)
+  const dataRef = useRef(data)
+  const modeRef = useRef<'guest' | 'demo' | 'account'>('guest')
+  const userIdRef = useRef<string | null>(null)
+  const sessionRef = useRef<Session | null>(null)
+  const emailRef = useRef<string>('')
+  const startingRef = useRef(false)
+  const dirtyRef = useRef(false)
+  const pendingRef = useRef<AppData | null>(null)
+  const saveTimerRef = useRef<number | null>(null)
+  const retryTimerRef = useRef<number | null>(null)
+  const retryCountRef = useRef(0)
+  const retryBlockedRef = useRef(false)
+  const inFlightRef = useRef(false)
+  const mountedRef = useRef(true)
+  const pushRef = useRef<() => Promise<void>>(async () => {})
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current)
+      if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current)
+    }
   }, [])
 
-  const signIn = useCallback(
-    (email: string) => {
-      update((current) => ({
-        ...current,
-        parent: current.parent ?? {
-          email,
-          consentedAt: new Date().toISOString(),
-        },
-      }))
+  const scheduleRetry = useCallback((delay = 6000) => {
+    if (retryTimerRef.current) return
+    retryTimerRef.current = window.setTimeout(() => {
+      retryTimerRef.current = null
+      void pushRef.current()
+    }, delay)
+  }, [])
+
+  const pushPending = useCallback(async () => {
+    const userId = userIdRef.current
+    if (!cloudEnabled || !userId || modeRef.current !== 'account') return
+    if (inFlightRef.current) return
+    const snapshot = pendingRef.current
+    if (!snapshot) return
+
+    pendingRef.current = null
+    inFlightRef.current = true
+    if (mountedRef.current) setCloudStatus('saving')
+
+    try {
+      await saveFamilyState(userId, snapshot)
+      if (userId !== userIdRef.current) return
+      markSynced(userId)
+      dirtyRef.current = false
+      retryCountRef.current = 0
+      retryBlockedRef.current = false
+      if (mountedRef.current) setCloudStatus('saved')
+    } catch {
+      if (userId !== userIdRef.current) return
+      if (!pendingRef.current) pendingRef.current = snapshot
+      markPending(userId)
+      if (!navigator.onLine) {
+        if (mountedRef.current) setCloudStatus('offline')
+        return
+      }
+      retryCountRef.current += 1
+      if (retryCountRef.current >= 5) retryBlockedRef.current = true
+      if (mountedRef.current) setCloudStatus('error')
+      if (!retryBlockedRef.current) scheduleRetry()
+    } finally {
+      inFlightRef.current = false
+      if (
+        pendingRef.current &&
+        userIdRef.current === userId &&
+        navigator.onLine &&
+        !retryBlockedRef.current &&
+        !retryTimerRef.current
+      ) {
+        scheduleRetry(0)
+      }
+    }
+  }, [scheduleRetry])
+
+  pushRef.current = pushPending
+
+  const queueSave = useCallback(() => {
+    if (!cloudEnabled || !userIdRef.current || modeRef.current !== 'account') return
+    pendingRef.current = dataRef.current
+    retryCountRef.current = 0
+    retryBlockedRef.current = false
+    if (retryTimerRef.current) {
+      window.clearTimeout(retryTimerRef.current)
+      retryTimerRef.current = null
+    }
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = window.setTimeout(() => {
+      saveTimerRef.current = null
+      void pushRef.current()
+    }, 700)
+  }, [])
+
+  const commit = useCallback(
+    (next: AppData) => {
+      dataRef.current = next
+      setData(next)
+      if (modeRef.current !== 'account' || !userIdRef.current) return
+
+      writeCache(userIdRef.current, next)
+      markPending(userIdRef.current)
+      dirtyRef.current = true
+      pendingRef.current = next
+
+      if (!navigator.onLine) {
+        if (mountedRef.current) setCloudStatus('offline')
+        return
+      }
+      if (mountedRef.current) setCloudStatus('saving')
+      queueSave()
     },
-    [update],
+    [queueSave],
+  )
+
+  const update = useCallback(
+    (updater: (current: AppData) => AppData) => {
+      commit(updater(dataRef.current))
+    },
+    [commit],
+  )
+
+  const adoptSession = useCallback(
+    async (session: Session | null, preferredEmail?: string) => {
+      if (!cloudEnabled || !session?.user) return
+      const userId = session.user.id
+      sessionRef.current = session
+      const cached = readCache(userId)
+      // Người dùng ẩn danh trả email = '' (không phải null), nên phải dùng || để
+      // rơi xuống email bố mẹ vừa nhập.
+      const email = (
+        session.user.email ||
+        preferredEmail ||
+        emailRef.current ||
+        cached?.parent?.email ||
+        ''
+      ).trim()
+
+      if (userIdRef.current === userId && modeRef.current === 'account') {
+        // Đã ở đúng tài khoản: chỉ cập nhật email nếu bố mẹ vừa nhập lại.
+        if (email) {
+          emailRef.current = email
+          setAccountEmail(email)
+          if (dataRef.current.parent?.email !== email) {
+            const next = withParent(dataRef.current, email, readConsent(email))
+            dataRef.current = next
+            setData(next)
+            writeCache(userId, next)
+            markPending(userId)
+            pendingRef.current = next
+            if (navigator.onLine) {
+              if (mountedRef.current) setCloudStatus('saving')
+              queueSave()
+            }
+          }
+        }
+        return
+      }
+
+      userIdRef.current = userId
+      modeRef.current = 'account'
+      emailRef.current = email
+      setAccountEmail(email || null)
+      const consentAt = readConsent(email)
+      const hadPending = isPending(userId)
+
+      const ensureParent = (source: AppData) => (email ? withParent(source, email, consentAt) : source)
+
+      if (cached) {
+        // Mở app ngay bằng bản trên máy, kể cả khi đang offline.
+        dataRef.current = cached
+        setData(cached)
+        setAuthReady(true)
+        if (mountedRef.current) setCloudStatus(navigator.onLine ? 'idle' : 'offline')
+      }
+
+      const applyRemote = (next: AppData) => {
+        dataRef.current = next
+        setData(next)
+        writeCache(userId, next)
+        const nextEmail = next.parent?.email ?? ''
+        if (nextEmail) {
+          emailRef.current = nextEmail
+          setAccountEmail(nextEmail)
+        }
+      }
+
+      try {
+        const remote = await fetchFamilyState(userId)
+        if (userIdRef.current !== userId) return
+        const remoteData = remote ? normalizeData(remote.data) : null
+
+        if (cached && (hadPending || dirtyRef.current)) {
+          // Có thay đổi chưa kịp lưu: bản trên máy là bản mới nhất.
+          pendingRef.current = dataRef.current
+          await pushRef.current()
+        } else if (remoteData) {
+          applyRemote(ensureParent(remoteData))
+          markSynced(userId)
+          if (mountedRef.current) setCloudStatus('saved')
+        } else {
+          const fallback = cached ?? legacyFor(email) ?? emptyData()
+          const next = ensureParent(fallback)
+          applyRemote(next)
+          removeLegacy()
+          pendingRef.current = next
+          await pushRef.current()
+        }
+        setAuthReady(true)
+      } catch {
+        if (userIdRef.current !== userId) return
+        if (!cached) {
+          const next = ensureParent(legacyFor(email) ?? emptyData())
+          dataRef.current = next
+          setData(next)
+          writeCache(userId, next)
+          markPending(userId)
+          pendingRef.current = next
+        }
+        setAuthReady(true)
+        if (mountedRef.current) setCloudStatus(navigator.onLine ? 'error' : 'offline')
+      } finally {
+        // Dọn tham số xác thực còn sót lại trên URL (nếu có).
+        removeAuthCodeFromUrl()
+      }
+    },
+    [queueSave],
+  )
+
+  const handleAuthLost = useCallback(() => {
+    // Mất phiên do token hết hạn: vẫn cho dùng bản offline, chỉ báo chưa đồng bộ được.
+    if (modeRef.current === 'account' && userIdRef.current) {
+      if (mountedRef.current) setCloudStatus(navigator.onLine ? 'error' : 'offline')
+      return
+    }
+    setCloudStatus(cloudEnabled ? 'idle' : 'off')
+  }, [])
+
+  useEffect(() => {
+    if (!supabase) {
+      setAuthReady(true)
+      return
+    }
+
+    let active = true
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return
+      if (event === 'SIGNED_OUT') {
+        handleAuthLost()
+        return
+      }
+      // Bỏ qua sự kiện phát sinh ngay trong lúc startWithEmail đang chạy,
+      // để email bố mẹ vừa nhập không bị ghi đè.
+      if (session && !startingRef.current) void adoptSession(session)
+    })
+
+    void (async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        if (!active) return
+        await adoptSession(session)
+      } catch {
+        if (active) setCloudStatus(navigator.onLine ? 'error' : 'offline')
+      } finally {
+        if (active) {
+          setAuthReady(true)
+          removeAuthCodeFromUrl()
+        }
+      }
+    })()
+
+    return () => {
+      active = false
+      listener.subscription.unsubscribe()
+    }
+  }, [adoptSession, handleAuthLost])
+
+  useEffect(() => {
+    const onOnline = () => {
+      const userId = userIdRef.current
+      if (!userId || modeRef.current !== 'account') return
+      retryCountRef.current = 0
+      retryBlockedRef.current = false
+      if (isPending(userId)) pendingRef.current = dataRef.current
+      if (pendingRef.current) void pushRef.current()
+    }
+    const onOffline = () => {
+      if (modeRef.current === 'account') setCloudStatus('offline')
+    }
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
+    }
+  }, [])
+
+  /**
+   * Bản hiện tại chưa gửi email OTP. Bố mẹ nhập email để gắn hồ sơ; quyền truy cập
+   * dữ liệu dựa trên phiên ẩn danh của chính thiết bị/trình duyệt này.
+   */
+  const startWithEmail = useCallback(
+    async (email: string) => {
+      if (!cloudEnabled || !supabase) {
+        return {
+          ok: false,
+          message:
+            'Máy chủ dữ liệu chưa được cấu hình. Bố mẹ xem hướng dẫn thiết lập Supabase rồi thử lại.',
+        }
+      }
+      const clean = email.trim()
+      startingRef.current = true
+      try {
+        emailRef.current = clean
+        if (!readConsent(clean)) rememberConsent(clean)
+
+        const existing = await supabase.auth.getSession()
+        let session = existing.data.session
+        if (!session) session = await signInAnonymously()
+
+        await adoptSession(session, clean)
+
+        if (!dataRef.current.parent) {
+          return {
+            ok: false,
+            message: 'Chưa tạo được hồ sơ trên máy chủ. Bố mẹ kiểm tra mạng rồi thử lại.',
+          }
+        }
+        return { ok: true, message: '' }
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : ''
+        console.error('StrongKids: không tạo được phiên đăng nhập', error)
+        if (/anonymous/i.test(detail) && /disabled|not allowed|not enabled/i.test(detail)) {
+          return {
+            ok: false,
+            message:
+              'Máy chủ chưa bật đăng nhập thiết bị. Trong Supabase, vào Authentication → Providers → Anonymous và bật lên rồi thử lại.',
+          }
+        }
+        if (/rate limit|too many/i.test(detail)) {
+          return {
+            ok: false,
+            message: 'Máy chủ đang giới hạn số lần tạo hồ sơ. Bố mẹ chờ khoảng một phút rồi thử lại.',
+          }
+        }
+        return {
+          ok: false,
+          message: 'Chưa kết nối được máy chủ dữ liệu. Bố mẹ kiểm tra mạng rồi thử lại.',
+        }
+      } finally {
+        startingRef.current = false
+      }
+    },
+    [adoptSession],
   )
 
   const startDemo = useCallback(() => {
+    if (modeRef.current === 'account') return
     const demo = makeDemoData()
+    modeRef.current = 'demo'
+    dirtyRef.current = false
+    pendingRef.current = null
     dataRef.current = demo
     setData(demo)
-    persist(demo)
+    setAccountEmail(null)
+    setCloudStatus('demo')
   }, [])
 
   const completeOnboarding = useCallback(
@@ -306,7 +798,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       update((current) => ({
         ...current,
-        parent: { email: input.email, consentedAt: now.toISOString() },
+        parent: current.parent
+          ? { ...current.parent, email: input.email }
+          : { email: input.email, consentedAt: now.toISOString() },
         child,
         measurements: [measurement],
         schedule: {
@@ -486,17 +980,61 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return JSON.stringify(snapshot, null, 2)
   }, [])
 
-  const resetAll = useCallback(() => {
+  const resetAll = useCallback(async () => {
+    const userId = userIdRef.current
+    if (userId) {
+      try {
+        await deleteFamilyState(userId)
+      } catch {
+        return {
+          ok: false,
+          message:
+            'Chưa xoá được dữ liệu trên máy chủ. Bố mẹ kiểm tra kết nối mạng rồi thử lại.',
+        }
+      }
+      clearCache(userId)
+      removeLegacy()
+    }
+
     const empty = emptyData()
+    const email = emailRef.current || dataRef.current.parent?.email || ''
+    if (email) {
+      empty.parent = { email, consentedAt: new Date().toISOString() }
+    }
     dataRef.current = empty
     setData(empty)
-    persist(empty)
+    dirtyRef.current = false
+    pendingRef.current = null
+    retryCountRef.current = 0
+    retryBlockedRef.current = false
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current)
+    if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current)
+    saveTimerRef.current = null
+    retryTimerRef.current = null
+
+    if (userId) {
+      try {
+        await saveFamilyState(userId, empty)
+        markSynced(userId)
+        writeCache(userId, empty)
+        if (mountedRef.current) setCloudStatus('saved')
+      } catch {
+        markPending(userId)
+        writeCache(userId, empty)
+        pendingRef.current = empty
+        if (mountedRef.current) setCloudStatus(navigator.onLine ? 'error' : 'offline')
+      }
+    }
+    return { ok: true, message: '' }
   }, [])
 
   const value = useMemo<StoreValue>(
     () => ({
       data,
-      signIn,
+      authReady,
+      accountEmail,
+      cloudStatus,
+      startWithEmail,
       startDemo,
       completeOnboarding,
       setSchedule,
@@ -513,7 +1051,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }),
     [
       data,
-      signIn,
+      authReady,
+      accountEmail,
+      cloudStatus,
+      startWithEmail,
       startDemo,
       completeOnboarding,
       setSchedule,
@@ -534,9 +1075,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 }
 
 export function useStore(): StoreValue {
-  const value = useContext(StoreContext)
-  if (!value) throw new Error('useStore phải nằm trong StoreProvider')
-  return value
+  const context = useContext(StoreContext)
+  if (!context) throw new Error('useStore phải nằm trong StoreProvider')
+  return context
 }
 
 export function childBand(child: Child) {

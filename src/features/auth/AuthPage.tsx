@@ -4,16 +4,18 @@ import { getExercise } from '../../content/catalog'
 import { ExerciseArt } from '../../components/ExerciseArt'
 import { Badge, Button, Card, Icon, TextInput } from '../../components/ui'
 import { Logo } from '../../components/AppShell'
+import { cloudEnabled } from '../../lib/supabase'
 
 const heroExercise = getExercise('nhay-day-tuong-tuong')
 
 export function AuthPage() {
-  const { signIn, startDemo } = useStore()
+  const { startWithEmail, startDemo } = useStore()
   const [email, setEmail] = useState('')
   const [consent, setConsent] = useState(false)
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault()
     const trimmed = email.trim()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
@@ -25,7 +27,12 @@ export function AuthPage() {
       return
     }
     setError('')
-    signIn(trimmed)
+    setBusy(true)
+    const result = await startWithEmail(trimmed)
+    setBusy(false)
+    if (!result.ok) {
+      setError(result.message)
+    }
   }
 
   return (
@@ -82,6 +89,13 @@ export function AuthPage() {
         </div>
 
         <Card className="mt-6 p-5">
+          {!cloudEnabled && (
+            <p className="mb-4 rounded-2xl bg-sun-soft px-3 py-2 text-xs font-bold leading-relaxed text-[#8A5C00]">
+              Máy chủ dữ liệu chưa được cấu hình. Bố mẹ có thể xem bản demo; để lưu hồ sơ lên
+              database, cần thêm VITE_SUPABASE_URL và VITE_SUPABASE_ANON_KEY.
+            </p>
+          )}
+
           <form onSubmit={submit} noValidate>
             <label className="mb-1.5 block text-sm font-bold text-ink" htmlFor="email">
               Email của bố mẹ
@@ -94,10 +108,14 @@ export function AuthPage() {
               placeholder="vidu@email.com"
               value={email}
               invalid={Boolean(error) && error.includes('email')}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                setEmail(event.target.value)
+                if (error) setError('')
+              }}
             />
             <p className="mt-1.5 text-xs font-semibold text-muted">
-              Dùng để lưu hồ sơ của bé và tiến trình tập luyện.
+              Dùng để gắn hồ sơ với tài khoản của bố mẹ. Bản này chưa gửi email xác thực. Không
+              gửi quảng cáo.
             </p>
 
             <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl bg-cream/70 p-3">
@@ -108,8 +126,9 @@ export function AuthPage() {
                 className="mt-0.5 h-5 w-5 shrink-0 accent-[#FF7A59]"
               />
               <span className="text-xs font-semibold leading-relaxed text-muted">
-                Tôi là cha mẹ hoặc người giám hộ của bé và đồng ý tạo hồ sơ vận động. StrongKids
-                chỉ lưu biệt danh, năm sinh, chiều cao, cân nặng — không lưu ảnh hay họ tên của bé.
+                Tôi là cha mẹ hoặc người giám hộ của bé, đồng ý tạo hồ sơ và lưu dữ liệu vận động
+                trên máy chủ StrongKids. Chỉ lưu biệt danh, năm/tháng sinh, chiều cao, cân nặng —
+                không ảnh, không họ tên, không địa chỉ.
               </span>
             </label>
 
@@ -119,10 +138,22 @@ export function AuthPage() {
               </p>
             )}
 
-            <Button type="submit" size="lg" fullWidth className="mt-4">
-              Bắt đầu cùng bé
-              <Icon name="arrow" />
+            <Button
+              type="submit"
+              size="lg"
+              fullWidth
+              className="mt-4"
+              disabled={busy || !cloudEnabled}
+            >
+              <Icon name="sparkles" className="h-4 w-4" />
+              {busy ? 'Đang tạo hồ sơ…' : 'Bắt đầu với email này'}
             </Button>
+
+            <p className="mt-2 text-center text-xs font-semibold leading-relaxed text-muted">
+              Chưa cần mật khẩu hay mã PIN. Hồ sơ gắn với trình duyệt này — nếu xoá dữ liệu trình
+              duyệt, bố mẹ sẽ mất liên kết tới hồ sơ trên máy chủ. Đăng nhập lại bằng email sẽ có
+              ở phiên bản sau.
+            </p>
           </form>
 
           <button
@@ -137,8 +168,9 @@ export function AuthPage() {
 
         <div className="mt-5 flex items-start gap-2 px-2 text-xs font-semibold leading-relaxed text-muted">
           <Icon name="shield" className="mt-0.5 h-4 w-4 shrink-0 text-teal-dark" />
-          StrongKids khuyến khích vận động vui khoẻ, không dùng calo hay cân nặng mục tiêu. Các
-          chỉ số tăng trưởng chỉ mang tính tham khảo, không thay thế tư vấn bác sĩ nhi.
+          Hồ sơ được lưu trên máy chủ Supabase gắn với thiết bị này và một bản trên thiết bị để
+          dùng khi mất mạng. Không quảng cáo, không dùng analytics bên thứ ba. StrongKids khuyến
+          khích vận động vui khoẻ, không dùng calo hay cân nặng mục tiêu.
         </div>
       </div>
     </div>

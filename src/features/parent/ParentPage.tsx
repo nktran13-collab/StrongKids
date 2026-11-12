@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useStore } from '../../app/store'
+import { useStore, type CloudStatus } from '../../app/store'
 import { calculateAge, bandForChild, BAND_LABEL } from '../../lib/age'
 import { BMI_DISCLAIMER, calculateBmi, calculateExactBmi, formatBmi } from '../../lib/bmi'
 import { formatViDate, todayKey } from '../../lib/date'
@@ -27,125 +27,47 @@ import {
   cx,
 } from '../../components/ui'
 
-export function ParentPage() {
-  const [unlocked, setUnlocked] = useState(false)
-
-  if (!unlocked) {
-    return <PinGate onUnlocked={() => setUnlocked(true)} />
-  }
-
-  return <ParentDashboard onLock={() => setUnlocked(false)} />
-}
-
-function PinGate({ onUnlocked }: { onUnlocked: () => void }) {
-  const { data, setPin, verifyPin } = useStore()
-  const hasPin = Boolean(data.pinHash)
-  const [pin, setPinValue] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [error, setError] = useState('')
-
-  const submit = () => {
-    setError('')
-    if (!/^\d{4}$/.test(pin)) {
-      setError('Mã PIN gồm đúng 4 chữ số.')
-      return
-    }
-    if (hasPin) {
-      if (verifyPin(pin)) onUnlocked()
-      else {
-        setError('Mã PIN chưa đúng, thử lại nhé.')
-        setPinValue('')
+function syncCopy(status: CloudStatus): { text: string; tone: string } {
+  switch (status) {
+    case 'saved':
+      return {
+        text: 'Đã lưu lên máy chủ. Thiết bị vẫn giữ một bản để dùng khi mất mạng.',
+        tone: 'text-teal-dark',
       }
-      return
-    }
-    if (pin !== confirm) {
-      setError('Hai lần nhập chưa giống nhau.')
-      return
-    }
-    setPin(pin)
-    onUnlocked()
+    case 'saving':
+      return { text: 'Đang lưu lên máy chủ…', tone: 'text-muted' }
+    case 'offline':
+      return {
+        text: 'Đang offline — thay đổi được giữ trên máy và sẽ tự lưu khi có mạng.',
+        tone: 'text-[#8A5C00]',
+      }
+    case 'error':
+      return {
+        text: 'Chưa lưu được lên máy chủ. Dữ liệu vẫn an toàn trên máy; app sẽ thử lại.',
+        tone: 'text-coral-dark',
+      }
+    case 'demo':
+      return { text: 'Bản demo — dữ liệu không được lưu lên máy chủ.', tone: 'text-muted' }
+    case 'off':
+      return {
+        text: 'Chưa cấu hình máy chủ — dữ liệu chỉ nằm trên thiết bị này.',
+        tone: 'text-[#8A5C00]',
+      }
+    default:
+      return {
+        text: 'Đã kết nối tài khoản. Thay đổi sẽ được lưu lên máy chủ.',
+        tone: 'text-muted',
+      }
   }
-
-  return (
-    <div className="pb-2">
-      <PageHeader
-        title="Khu phụ huynh"
-        subtitle="Nơi dành riêng cho bố mẹ và người giám hộ"
-      />
-      <Card className="p-5">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-peach text-coral-dark">
-          <Icon name="lock" className="h-8 w-8" />
-        </div>
-        <h2 className="display-title mt-4 text-center text-xl text-ink">
-          {hasPin ? 'Nhập mã PIN để mở khoá' : 'Tạo mã PIN bảo vệ khu phụ huynh'}
-        </h2>
-        <p className="mx-auto mt-1 max-w-[340px] text-center text-sm font-semibold leading-relaxed text-muted">
-          {hasPin
-            ? 'Khu vực này chứa chiều cao, cân nặng và thông tin sức khoẻ của bé. Bé không nên tự mở.'
-            : 'Mã PIN giúp bé không vô tình vào khu vực dành cho người lớn. Đây là chốt chặn trên thiết bị này, không phải mã hoá dữ liệu.'}
-        </p>
-
-        <div className="mx-auto mt-5 max-w-[280px] space-y-3">
-          <Field label={hasPin ? 'Mã PIN 4 số' : 'Mã PIN mới'}>
-            <TextInput
-              type="password"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={4}
-              value={pin}
-              onChange={(event) => setPinValue(event.target.value.replace(/\D/g, '').slice(0, 4))}
-              placeholder="••••"
-              className="text-center text-2xl tracking-[0.6em]"
-              invalid={Boolean(error)}
-              aria-label="Mã PIN"
-            />
-          </Field>
-          {!hasPin && (
-            <Field label="Nhập lại mã PIN">
-              <TextInput
-                type="password"
-                inputMode="numeric"
-                autoComplete="off"
-                maxLength={4}
-                value={confirm}
-                onChange={(event) => setConfirm(event.target.value.replace(/\D/g, '').slice(0, 4))}
-                placeholder="••••"
-                className="text-center text-2xl tracking-[0.6em]"
-                invalid={Boolean(error)}
-                aria-label="Nhập lại mã PIN"
-              />
-            </Field>
-          )}
-          {error && <p className="text-center text-xs font-bold text-coral-dark">{error}</p>}
-          <Button fullWidth size="lg" onClick={submit}>
-            <Icon name="lock" className="h-5 w-5" />
-            {hasPin ? 'Mở khoá' : 'Lưu mã PIN'}
-          </Button>
-        </div>
-
-        <div className="mt-6 rounded-2xl bg-cream p-3">
-          <div className="flex items-start gap-2">
-            <Icon name="shield" className="mt-0.5 h-4 w-4 shrink-0 text-teal-dark" />
-            <p className="text-xs font-semibold leading-relaxed text-muted">
-              StrongKids chỉ lưu biệt danh, năm/tháng sinh, chiều cao và cân nặng của bé. Không ảnh,
-              không họ tên, không địa chỉ. Mã PIN không thay thế mật khẩu thiết bị.
-            </p>
-          </div>
-        </div>
-      </Card>
-    </div>
-  )
 }
 
-function ParentDashboard({ onLock }: { onLock: () => void }) {
+export function ParentPage() {
+  return <ParentDashboard />
+}
+
+function ParentDashboard() {
   const navigate = useNavigate()
-  const {
-    data,
-    setPin,
-    addMeasurement,
-    exportData,
-    resetAll,
-  } = useStore()
+  const { data, addMeasurement, exportData, resetAll, cloudStatus } = useStore()
   const child = data.child!
   const { canInstall, isStandalone, install } = useInstallPrompt()
   const today = todayKey()
@@ -165,8 +87,9 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
       : 'Bảng WHO 2007 dùng cho bé từ 5 tuổi 1 tháng đến 19 tuổi; hồ sơ này nằm ngoài phạm vi đó.'
 
   const [measureOpen, setMeasureOpen] = useState(false)
-  const [pinOpen, setPinOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   const measurements = useMemo(
     () => [...data.measurements].sort((a, b) => a.dateKey.localeCompare(b.dateKey)),
@@ -197,21 +120,13 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
     URL.revokeObjectURL(url)
   }
 
+  const sync = syncCopy(cloudStatus)
+
   return (
     <div className="pb-2">
       <PageHeader
         title="Khu phụ huynh"
         subtitle="Thông tin sức khoẻ và dữ liệu của bé"
-        right={
-          <button
-            type="button"
-            onClick={onLock}
-            className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-white text-ink shadow-sm"
-            aria-label="Khoá khu phụ huynh"
-          >
-            <Icon name="lock" className="h-5 w-5" />
-          </button>
-        }
       />
 
       <Card className="p-5">
@@ -294,16 +209,10 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
           <p className="text-xs font-semibold leading-relaxed text-muted">{BMI_DISCLAIMER}</p>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <Button variant="secondary" onClick={() => setMeasureOpen(true)}>
-            <Icon name="ruler" className="h-4 w-4" />
-            Ghi đo mới
-          </Button>
-          <Button variant="secondary" onClick={() => setPinOpen(true)}>
-            <Icon name="lock" className="h-4 w-4" />
-            Đổi mã PIN
-          </Button>
-        </div>
+        <Button className="mt-3" variant="secondary" fullWidth onClick={() => setMeasureOpen(true)}>
+          <Icon name="ruler" className="h-4 w-4" />
+          Ghi đo mới
+        </Button>
       </Card>
 
       <Card className="mt-3 p-4">
@@ -375,13 +284,13 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
         {isStandalone ? (
           <p className="mt-2 text-xs font-semibold leading-relaxed text-muted">
             StrongKids đang chạy toàn màn hình trên thiết bị này. Bé vẫn xem bài và tập được khi
-            không có mạng; kết quả được lưu lại trên máy.
+            không có mạng; kết quả được lưu trên máy và đồng bộ khi có kết nối.
           </p>
         ) : canInstall ? (
           <>
             <p className="mt-2 text-xs font-semibold leading-relaxed text-muted">
-              Mở nhanh hơn, chạy toàn màn hình và dùng được khi không có mạng. Dữ liệu vẫn chỉ nằm
-              trên thiết bị của bạn.
+              Mở nhanh hơn, chạy toàn màn hình và dùng được khi không có mạng. Dữ liệu được đồng
+              bộ lên máy chủ khi có kết nối.
             </p>
             <Button
               className="mt-3"
@@ -416,8 +325,16 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
             </span>
           </p>
           <p>
-            Dữ liệu trong bản này được lưu trên chính thiết bị của bạn (localStorage). Không có quảng
-            cáo và không gửi dữ liệu trẻ cho bên thứ ba.
+            Dữ liệu được lưu trên máy chủ StrongKids (Supabase) và một bản trên thiết bị để dùng
+            khi mất mạng. Không có quảng cáo và không gửi dữ liệu trẻ cho bên thứ ba.
+          </p>
+          <p>
+            Tài khoản đang gắn với trình duyệt này (chưa dùng mật khẩu hay mã PIN). Xoá dữ liệu
+            trình duyệt sẽ làm mất liên kết tới hồ sơ trên máy chủ — hãy xuất dữ liệu trước.
+          </p>
+          <p className={cx('flex items-start gap-2', sync.tone)}>
+            <Icon name="cloud" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>{sync.text}</span>
           </p>
         </div>
         <div className="mt-3 grid gap-2">
@@ -453,40 +370,57 @@ function ParentDashboard({ onLock }: { onLock: () => void }) {
         }}
       />
 
-      <ChangePinModal
-        open={pinOpen}
-        onClose={() => setPinOpen(false)}
-        onSave={(pin) => {
-          setPin(pin)
-          setPinOpen(false)
-        }}
-      />
-
       <Modal
         open={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
+        onClose={() => {
+          if (deleting) return
+          setDeleteOpen(false)
+          setDeleteError('')
+        }}
         title="Xoá toàn bộ dữ liệu?"
         footer={
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="secondary" onClick={() => setDeleteOpen(false)}>
+            <Button
+              variant="secondary"
+              disabled={deleting}
+              onClick={() => {
+                setDeleteOpen(false)
+                setDeleteError('')
+              }}
+            >
               Giữ lại
             </Button>
             <Button
               variant="primary"
+              disabled={deleting}
               onClick={() => {
-                resetAll()
-                navigate('/dang-nhap')
+                setDeleting(true)
+                setDeleteError('')
+                void resetAll().then((result) => {
+                  setDeleting(false)
+                  if (!result.ok) {
+                    setDeleteError(result.message)
+                    return
+                  }
+                  setDeleteOpen(false)
+                  navigate('/bat-dau', { replace: true })
+                })
               }}
             >
-              Xoá hết
+              {deleting ? 'Đang xoá…' : 'Xoá hết'}
             </Button>
           </div>
         }
       >
         <p className="text-sm font-semibold leading-relaxed text-muted">
-          Toàn bộ hồ sơ bé, lịch sử buổi tập và kỷ lục trên thiết bị này sẽ bị xoá vĩnh viễn. Bạn
-          nên xuất dữ liệu trước nếu muốn lưu lại.
+          Toàn bộ hồ sơ bé, lịch sử buổi tập và kỷ lục trên thiết bị và máy chủ sẽ bị xoá vĩnh
+          viễn. Bạn nên xuất dữ liệu trước nếu muốn lưu lại.
         </p>
+        {deleteError && (
+          <p className="mt-3 rounded-xl bg-peach px-3 py-2 text-xs font-bold text-coral-dark">
+            {deleteError}
+          </p>
+        )}
       </Modal>
     </div>
   )
@@ -659,72 +593,6 @@ function MeasurementModal({
             />
           </Field>
         </div>
-        {error && <p className="text-xs font-bold text-coral-dark">{error}</p>}
-      </div>
-    </Modal>
-  )
-}
-
-function ChangePinModal({
-  open,
-  onClose,
-  onSave,
-}: {
-  open: boolean
-  onClose: () => void
-  onSave: (pin: string) => void
-}) {
-  const [pin, setPin] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [error, setError] = useState('')
-
-  const submit = () => {
-    if (!/^\d{4}$/.test(pin)) {
-      setError('Mã PIN gồm đúng 4 chữ số.')
-      return
-    }
-    if (pin !== confirm) {
-      setError('Hai lần nhập chưa giống nhau.')
-      return
-    }
-    setError('')
-    onSave(pin)
-    setPin('')
-    setConfirm('')
-  }
-
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="Đổi mã PIN"
-      footer={
-        <Button fullWidth onClick={submit}>
-          Lưu mã PIN mới
-        </Button>
-      }
-    >
-      <div className="space-y-3">
-        <Field label="Mã PIN mới">
-          <TextInput
-            type="password"
-            inputMode="numeric"
-            maxLength={4}
-            value={pin}
-            onChange={(event) => setPin(event.target.value.replace(/\D/g, '').slice(0, 4))}
-            className="text-center text-2xl tracking-[0.6em]"
-          />
-        </Field>
-        <Field label="Nhập lại mã PIN">
-          <TextInput
-            type="password"
-            inputMode="numeric"
-            maxLength={4}
-            value={confirm}
-            onChange={(event) => setConfirm(event.target.value.replace(/\D/g, '').slice(0, 4))}
-            className="text-center text-2xl tracking-[0.6em]"
-          />
-        </Field>
         {error && <p className="text-xs font-bold text-coral-dark">{error}</p>}
       </div>
     </Modal>

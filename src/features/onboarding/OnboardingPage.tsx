@@ -153,7 +153,7 @@ export function OnboardingPage() {
                       ))}
                     </Select>
                   </Field>
-                  <Field label="Tháng sinh" hint="Không bắt buộc">
+                  <Field label="Tháng sinh">
                     <Select
                       value={birthMonth ?? ''}
                       onChange={(event) =>

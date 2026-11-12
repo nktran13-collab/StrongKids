@@ -28,6 +28,9 @@ type IconName =
   | 'arrow'
   | 'shield'
   | 'download'
+  | 'mail'
+  | 'cloud'
+  | 'logout'
   | 'trash'
   | 'info'
   | 'clock'
@@ -73,6 +76,19 @@ const ICON_PATHS: Record<IconName, ReactNode> = {
   arrow: <path d="M4 12h16M14 6l6 6-6 6" />,
   shield: <path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" />,
   download: <path d="M12 3v12M7 10l5 5 5-5M4 20h16" />,
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path d="m4 7 8 6 8-6" />
+    </>
+  ),
+  cloud: <path d="M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 9.4 4.3 4.3 0 0 0 7 18z" />,
+  logout: (
+    <>
+      <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+      <path d="M10 8l-4 4 4 4M6 12h9" />
+    </>
+  ),
   trash: <path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6" />,
   info: (
     <>

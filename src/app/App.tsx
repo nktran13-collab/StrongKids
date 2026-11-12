@@ -34,6 +34,12 @@ function PageLoader() {
   )
 }
 
+function AuthReadyGate({ children }: { children: ReactNode }) {
+  const { authReady } = useStore()
+  if (!authReady) return <PageLoader />
+  return <>{children}</>
+}
+
 function AuthRoute() {
   const { data } = useStore()
   if (data.parent && data.child) return <Navigate to="/" replace />
@@ -83,8 +89,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
             </div>
             <h1 className="display-title mt-4 text-xl text-ink">Có gì đó chưa ổn</h1>
             <p className="mt-2 text-sm font-semibold leading-relaxed text-muted">
-              Dữ liệu trên thiết bị vẫn an toàn. Bố mẹ tải lại trang để tiếp tục nhé. Nếu lỗi lặp
-              lại, hãy mở Khu phụ huynh và xuất dữ liệu trước khi xoá.
+              Dữ liệu vẫn an toàn trên thiết bị và máy chủ. Bố mẹ tải lại trang để tiếp tục nhé.
+              Nếu lỗi lặp lại, hãy mở Khu phụ huynh và xuất dữ liệu trước khi xoá.
             </p>
             <Button className="mt-4" fullWidth onClick={() => window.location.reload()}>
               <Icon name="refresh" className="h-4 w-4" />
@@ -103,20 +109,22 @@ export function App() {
     <ErrorBoundary>
       <StoreProvider>
         <HashRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/dang-nhap" element={<AuthRoute />} />
-              <Route path="/bat-dau" element={<OnboardingRoute />} />
-              <Route path="/tap/:id" element={<WorkoutRoute />} />
-              <Route element={<ShellRoute />}>
-                <Route index element={<HomePage />} />
-                <Route path="/bai-tap" element={<LibraryPage />} />
-                <Route path="/lich" element={<SchedulePage />} />
-                <Route path="/phu-huynh" element={<ParentPage />} />
-              </Route>
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
+          <AuthReadyGate>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/dang-nhap" element={<AuthRoute />} />
+                <Route path="/bat-dau" element={<OnboardingRoute />} />
+                <Route path="/tap/:id" element={<WorkoutRoute />} />
+                <Route element={<ShellRoute />}>
+                  <Route index element={<HomePage />} />
+                  <Route path="/bai-tap" element={<LibraryPage />} />
+                  <Route path="/lich" element={<SchedulePage />} />
+                  <Route path="/phu-huynh" element={<ParentPage />} />
+                </Route>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </AuthReadyGate>
         </HashRouter>
         <PwaUpdateToast />
       </StoreProvider>
