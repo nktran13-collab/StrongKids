@@ -51,13 +51,16 @@ export function hashPin(pin: string): string {
   return (hash >>> 0).toString(36)
 }
 
+const DEFAULT_SCHEDULE: Schedule = { weekdays: [1, 3, 5], durationMin: 25 }
+
 function emptyData(): AppData {
   return {
-    version: 1,
+    version: 2,
     parent: null,
-    child: null,
+    children: [],
+    activeChildId: null,
     measurements: [],
-    schedule: { weekdays: [1, 3, 5], durationMin: 25 },
+    schedules: {},
     sessions: [],
     bests: {},
     pinHash: null,
@@ -65,28 +68,121 @@ function emptyData(): AppData {
   }
 }
 
-function normalizeData(value: unknown): AppData | null {
+function normalizeSchedule(value: unknown): Schedule | null {
   if (!value || typeof value !== 'object') return null
-  const raw = value as Partial<AppData>
-  if (raw.version !== 1) return null
-  const base = emptyData()
+  const raw = value as Partial<Schedule>
+  if (!Array.isArray(raw.weekdays) || typeof raw.durationMin !== 'number') return null
+  const weekdays = raw.weekdays.filter(
+    (day): day is number => typeof day === 'number' && day >= 1 && day <= 7,
+  )
+  const durationMin = raw.durationMin === 20 || raw.durationMin === 25 || raw.durationMin === 30
+    ? raw.durationMin
+    : DEFAULT_SCHEDULE.durationMin
+  return { weekdays, durationMin }
+}
+
+function normalizeChild(value: unknown): Child | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Partial<Child>
+  if (typeof raw.id !== 'string' || !raw.id) return null
+  if (typeof raw.birthYear !== 'number') return null
   return {
-    ...base,
-    ...raw,
-    version: 1,
-    parent: raw.parent && typeof raw.parent === 'object' ? raw.parent : null,
-    child: raw.child && typeof raw.child === 'object' ? raw.child : null,
-    measurements: Array.isArray(raw.measurements) ? raw.measurements : [],
-    schedule:
-      raw.schedule &&
-      Array.isArray(raw.schedule.weekdays) &&
-      typeof raw.schedule.durationMin === 'number'
-        ? raw.schedule
-        : base.schedule,
-    sessions: Array.isArray(raw.sessions) ? raw.sessions : [],
-    bests: raw.bests && typeof raw.bests === 'object' ? raw.bests : {},
-    pinHash: typeof raw.pinHash === 'string' ? raw.pinHash : null,
-    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : base.createdAt,
+    id: raw.id,
+    nickname: typeof raw.nickname === 'string' && raw.nickname.trim() ? raw.nickname.trim() : 'Bé',
+    birthYear: raw.birthYear,
+    birthMonth: typeof raw.birthMonth === 'number' ? raw.birthMonth : null,
+    sex: raw.sex === 'male' || raw.sex === 'female' ? raw.sex : null,
+    heightCm: typeof raw.heightCm === 'number' ? raw.heightCm : 0,
+    weightKg: typeof raw.weightKg === 'number' ? raw.weightKg : 0,
+    avatarKey: typeof raw.avatarKey === 'string' ? raw.avatarKey : 'panda',
+    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString(),
+  }
+}
+
+export function normalizeData(value: unknown): AppData | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Record<string, unknown>
+  if (raw.version !== 1 && raw.version !== 2) return null
+  const base = emptyData()
+
+  const parent =
+    raw.parent && typeof raw.parent === 'object'
+      ? (raw.parent as AppData['parent'])
+      : null
+  const sessions = Array.isArray(raw.sessions) ? (raw.sessions as WorkoutSession[]) : []
+  const pinHash = typeof raw.pinHash === 'string' ? raw.pinHash : null
+  const createdAt = typeof raw.createdAt === 'string' ? raw.createdAt : base.createdAt
+
+  if (raw.version === 1) {
+    // Bản cũ chỉ có một bé: chuyển toàn bộ dữ liệu sang hồ sơ đầu tiên.
+    const child = normalizeChild(raw.child)
+    const childId = child?.id ?? null
+    const measurements = (Array.isArray(raw.measurements) ? raw.measurements : [])
+      .filter((item): item is Measurement => Boolean(item) && typeof item === 'object')
+      .map((item) => ({ ...item, childId: item.childId || childId || '' }))
+      .filter((item) => item.childId)
+    const schedule = normalizeSchedule(raw.schedule)
+    const bests =
+      raw.bests && typeof raw.bests === 'object' && childId
+        ? { [childId]: raw.bests as Record<string, BestEntry> }
+        : {}
+    return {
+      version: 2,
+      parent,
+      children: child ? [child] : [],
+      activeChildId: childId,
+      measurements,
+      schedules: childId ? { [childId]: schedule ?? { ...DEFAULT_SCHEDULE } } : {},
+      sessions,
+      bests,
+      pinHash,
+      createdAt,
+    }
+  }
+
+  const children = (Array.isArray(raw.children) ? raw.children : [])
+    .map(normalizeChild)
+    .filter((child): child is Child => Boolean(child))
+  const activeChildId =
+    typeof raw.activeChildId === 'string' && children.some((child) => child.id === raw.activeChildId)
+      ? raw.activeChildId
+      : (children[0]?.id ?? null)
+  const schedules: Record<string, Schedule> = {}
+  const rawSchedules =
+    raw.schedules && typeof raw.schedules === 'object'
+      ? (raw.schedules as Record<string, unknown>)
+      : {}
+  const bests: Record<string, Record<string, BestEntry>> = {}
+  const rawBests =
+    raw.bests && typeof raw.bests === 'object'
+      ? (raw.bests as Record<string, unknown>)
+      : {}
+
+  children.forEach((child) => {
+    schedules[child.id] = normalizeSchedule(rawSchedules[child.id]) ?? { ...DEFAULT_SCHEDULE }
+    const own = rawBests[child.id]
+    bests[child.id] = own && typeof own === 'object' ? (own as Record<string, BestEntry>) : {}
+  })
+
+  return {
+    version: 2,
+    parent,
+    children,
+    activeChildId,
+    measurements: (Array.isArray(raw.measurements) ? raw.measurements : [])
+      .filter((item): item is Measurement => Boolean(item) && typeof item === 'object')
+      .filter((item) => typeof item.childId === 'string' && item.childId)
+      .map((item, index) => ({ ...item, id: item.id || `measure-${index}` })),
+    schedules,
+    sessions: sessions.filter(
+      (session) =>
+        session &&
+        typeof session === 'object' &&
+        children.some((child) => child.id === session.childId),
+    ),
+    bests,
+    pinHash,
+    createdAt,
   }
 }
 
@@ -335,19 +431,21 @@ function makeDemoData(): AppData {
   return {
     ...emptyData(),
     parent: { email: 'demo@strongkids.vn', consentedAt: now.toISOString() },
-    child,
+    children: [child],
+    activeChildId: child.id,
     measurements: [
       {
         id: uid(),
+        childId,
         dateKey: today,
         heightCm: child.heightCm,
         weightKg: child.weightKg,
         createdAt: now.toISOString(),
       },
     ],
-    schedule,
+    schedules: { [childId]: schedule },
     sessions,
-    bests,
+    bests: { [childId]: bests },
   }
 }
 
@@ -356,7 +454,7 @@ export interface OnboardingInput {
   nickname: string
   birthYear: number
   birthMonth: number | null
-  sex: Sex | null
+  sex: Sex
   heightCm: number
   weightKg: number
   weekdays: number[]
@@ -368,9 +466,18 @@ interface StoreValue {
   authReady: boolean
   accountEmail: string | null
   cloudStatus: CloudStatus
+  /** Bé đang được chọn để tập; null khi chưa có hồ sơ nào. */
+  activeChild: Child | null
+  activeSchedule: Schedule
+  activeMeasurements: Measurement[]
+  activeSessions: WorkoutSession[]
+  activeBests: Record<string, BestEntry>
   startWithEmail: (email: string) => Promise<{ ok: boolean; message: string }>
   startDemo: () => void
   completeOnboarding: (input: OnboardingInput) => void
+  addChild: (input: OnboardingInput) => void
+  setActiveChild: (childId: string) => void
+  removeChild: (childId: string) => void
   setSchedule: (schedule: Schedule) => void
   updateChild: (patch: Partial<Child>) => void
   addMeasurement: (heightCm: number, weightKg: number, dateKey: string) => void
@@ -774,7 +881,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setCloudStatus('demo')
   }, [])
 
-  const completeOnboarding = useCallback(
+  const addChild = useCallback(
     (input: OnboardingInput) => {
       const now = new Date()
       const childId = uid()
@@ -791,6 +898,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       const measurement: Measurement = {
         id: uid(),
+        childId,
         dateKey: todayKey(now),
         heightCm: input.heightCm,
         weightKg: input.weightKg,
@@ -801,20 +909,72 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         parent: current.parent
           ? { ...current.parent, email: input.email }
           : { email: input.email, consentedAt: now.toISOString() },
-        child,
-        measurements: [measurement],
-        schedule: {
-          weekdays: input.weekdays.length ? input.weekdays : [1, 3, 5],
-          durationMin: input.durationMin,
+        children: [...current.children, child],
+        activeChildId: childId,
+        measurements: [...current.measurements, measurement],
+        schedules: {
+          ...current.schedules,
+          [childId]: {
+            weekdays: input.weekdays.length ? input.weekdays : [1, 3, 5],
+            durationMin: input.durationMin,
+          },
         },
+        bests: { ...current.bests, [childId]: {} },
       }))
+    },
+    [update],
+  )
+
+  const completeOnboarding = addChild
+
+  const setActiveChild = useCallback(
+    (childId: string) => {
+      update((current) =>
+        current.activeChildId === childId ||
+        !current.children.some((child) => child.id === childId)
+          ? current
+          : { ...current, activeChildId: childId },
+      )
+    },
+    [update],
+  )
+
+  const removeChild = useCallback(
+    (childId: string) => {
+      update((current) => {
+        if (!current.children.some((child) => child.id === childId)) return current
+        const children = current.children.filter((child) => child.id !== childId)
+        const schedules = { ...current.schedules }
+        const bests = { ...current.bests }
+        delete schedules[childId]
+        delete bests[childId]
+        return {
+          ...current,
+          children,
+          activeChildId:
+            current.activeChildId === childId
+              ? (children[0]?.id ?? null)
+              : current.activeChildId,
+          schedules,
+          bests,
+          measurements: current.measurements.filter((item) => item.childId !== childId),
+          sessions: current.sessions.filter((session) => session.childId !== childId),
+        }
+      })
     },
     [update],
   )
 
   const setSchedule = useCallback(
     (schedule: Schedule) => {
-      update((current) => ({ ...current, schedule }))
+      update((current) =>
+        current.activeChildId
+          ? {
+              ...current,
+              schedules: { ...current.schedules, [current.activeChildId]: schedule },
+            }
+          : current,
+      )
     },
     [update],
   )
@@ -822,8 +982,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateChild = useCallback(
     (patch: Partial<Child>) => {
       update((current) =>
-        current.child
-          ? { ...current, child: { ...current.child, ...patch } }
+        current.activeChildId
+          ? {
+              ...current,
+              children: current.children.map((child) =>
+                child.id === current.activeChildId ? { ...child, ...patch } : child,
+              ),
+            }
           : current,
       )
     },
@@ -833,21 +998,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addMeasurement = useCallback(
     (heightCm: number, weightKg: number, dateKey: string) => {
       update((current) => {
-        if (!current.child) return current
+        const childId = current.activeChildId
+        if (!childId) return current
         const measurement: Measurement = {
           id: uid(),
+          childId,
           dateKey,
           heightCm,
           weightKg,
           createdAt: new Date().toISOString(),
         }
         const measurements = current.measurements
-          .filter((item) => item.dateKey !== dateKey)
+          .filter((item) => !(item.childId === childId && item.dateKey === dateKey))
           .concat(measurement)
           .sort((a, b) => a.dateKey.localeCompare(b.dateKey))
         return {
           ...current,
-          child: { ...current.child, heightCm, weightKg },
+          children: current.children.map((child) =>
+            child.id === childId ? { ...child, heightCm, weightKg } : child,
+          ),
           measurements,
         }
       })
@@ -858,15 +1027,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const startSession = useCallback(
     (plan: SessionPlan) => {
       const id = uid()
+      const childId = dataRef.current.activeChildId ?? ''
+      const childBests = dataRef.current.bests[childId] ?? {}
       const bestBefore: Record<string, number> = {}
       plan.mainSlugs.forEach((slug) => {
         const exercise = getExercise(slug)
-        const best = dataRef.current.bests[bestKey(slug, exercise.metric)]
+        const best = childBests[bestKey(slug, exercise.metric)]
         if (best) bestBefore[bestKey(slug, exercise.metric)] = best.value
       })
       const session: WorkoutSession = {
         id,
-        childId: dataRef.current.child?.id ?? '',
+        childId,
         dateKey: todayKey(),
         plan,
         status: 'in_progress',
@@ -895,9 +1066,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (sessionId, input) => {
       const exercise = getExercise(input.slug)
       const achievedAt = new Date().toISOString()
-      const previousBest = dataRef.current.sessions.find(
+      const targetSession = dataRef.current.sessions.find(
         (session) => session.id === sessionId,
-      )?.bestBefore[bestKey(input.slug, input.metric)]
+      )
+      const previousBest = targetSession?.bestBefore[bestKey(input.slug, input.metric)]
       const better =
         previousBest !== undefined &&
         input.value > 0 &&
@@ -920,10 +1092,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             ? { ...session, results: [...session.results, entry] }
             : session,
         )
+        const childId = targetSession?.childId ?? current.activeChildId
+        if (!childId) return { ...current, sessions }
         return {
           ...current,
           sessions,
-          bests: addResultToBests(current.bests, entry, exercise.direction),
+          bests: {
+            ...current.bests,
+            [childId]: addResultToBests(
+              current.bests[childId] ?? {},
+              entry,
+              exercise.direction,
+            ),
+          },
         }
       })
 
@@ -1028,15 +1209,48 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return { ok: true, message: '' }
   }, [])
 
+  const activeChild = useMemo(
+    () => data.children.find((child) => child.id === data.activeChildId) ?? null,
+    [data.children, data.activeChildId],
+  )
+  const activeSchedule = useMemo(
+    () =>
+      (data.activeChildId ? data.schedules[data.activeChildId] : undefined) ?? DEFAULT_SCHEDULE,
+    [data.schedules, data.activeChildId],
+  )
+  const activeMeasurements = useMemo(
+    () =>
+      [...data.measurements]
+        .filter((item) => item.childId === data.activeChildId)
+        .sort((a, b) => a.dateKey.localeCompare(b.dateKey)),
+    [data.measurements, data.activeChildId],
+  )
+  const activeSessions = useMemo(
+    () => data.sessions.filter((session) => session.childId === data.activeChildId),
+    [data.sessions, data.activeChildId],
+  )
+  const activeBests = useMemo(
+    () => (data.activeChildId ? (data.bests[data.activeChildId] ?? {}) : {}),
+    [data.bests, data.activeChildId],
+  )
+
   const value = useMemo<StoreValue>(
     () => ({
       data,
       authReady,
       accountEmail,
       cloudStatus,
+      activeChild,
+      activeSchedule,
+      activeMeasurements,
+      activeSessions,
+      activeBests,
       startWithEmail,
       startDemo,
       completeOnboarding,
+      addChild,
+      setActiveChild,
+      removeChild,
       setSchedule,
       updateChild,
       addMeasurement,
@@ -1054,9 +1268,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       authReady,
       accountEmail,
       cloudStatus,
+      activeChild,
+      activeSchedule,
+      activeMeasurements,
+      activeSessions,
+      activeBests,
       startWithEmail,
       startDemo,
       completeOnboarding,
+      addChild,
+      setActiveChild,
+      removeChild,
       setSchedule,
       updateChild,
       addMeasurement,

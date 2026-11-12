@@ -42,7 +42,7 @@ function AuthReadyGate({ children }: { children: ReactNode }) {
 
 function AuthRoute() {
   const { data } = useStore()
-  if (data.parent && data.child) return <Navigate to="/" replace />
+  if (data.parent && data.children.length) return <Navigate to="/" replace />
   if (data.parent) return <Navigate to="/bat-dau" replace />
   return <AuthPage />
 }
@@ -50,21 +50,28 @@ function AuthRoute() {
 function OnboardingRoute() {
   const { data } = useStore()
   if (!data.parent) return <Navigate to="/dang-nhap" replace />
-  if (data.child) return <Navigate to="/" replace />
+  if (data.children.length) return <Navigate to="/" replace />
+  return <OnboardingPage />
+}
+
+function AddChildRoute() {
+  const { data } = useStore()
+  if (!data.parent) return <Navigate to="/dang-nhap" replace />
+  if (!data.children.length) return <Navigate to="/bat-dau" replace />
   return <OnboardingPage />
 }
 
 function ShellRoute() {
   const { data } = useStore()
   if (!data.parent) return <Navigate to="/dang-nhap" replace />
-  if (!data.child) return <Navigate to="/bat-dau" replace />
+  if (!data.children.length) return <Navigate to="/bat-dau" replace />
   return <AppShell />
 }
 
 function WorkoutRoute() {
   const { data } = useStore()
   if (!data.parent) return <Navigate to="/dang-nhap" replace />
-  if (!data.child) return <Navigate to="/bat-dau" replace />
+  if (!data.children.length) return <Navigate to="/bat-dau" replace />
   return <WorkoutPage />
 }
 
@@ -114,6 +121,7 @@ export function App() {
               <Routes>
                 <Route path="/dang-nhap" element={<AuthRoute />} />
                 <Route path="/bat-dau" element={<OnboardingRoute />} />
+                <Route path="/them-be" element={<AddChildRoute />} />
                 <Route path="/tap/:id" element={<WorkoutRoute />} />
                 <Route element={<ShellRoute />}>
                   <Route index element={<HomePage />} />

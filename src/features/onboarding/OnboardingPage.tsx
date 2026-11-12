@@ -1,19 +1,23 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../app/store'
 import { BAND_DESCRIPTION, BAND_LABEL, bandForAge, calculateAge, recommendedDuration } from '../../lib/age'
 import { Badge, Button, Card, Field, Icon, PageHeader, SegmentedControl, Select, TextInput, cx } from '../../components/ui'
 import { WEEKDAY_SHORT } from '../../lib/date'
+import type { Sex } from '../../lib/types'
 
 type Step = 0 | 1 | 2
 
 export function OnboardingPage() {
-  const { data, completeOnboarding } = useStore()
+  const navigate = useNavigate()
+  const { data, completeOnboarding, addChild } = useStore()
+  const addingChild = Boolean(data.parent && data.children.length)
   const currentYear = new Date().getFullYear()
   const [step, setStep] = useState<Step>(0)
   const [nickname, setNickname] = useState('')
   const [birthYear, setBirthYear] = useState(currentYear - 8)
   const [birthMonth, setBirthMonth] = useState<number | null>(null)
-  const [sex, setSex] = useState<'male' | 'female' | null>(null)
+  const [sex, setSex] = useState<Sex | null>(null)
   const [heightCm, setHeightCm] = useState('125')
   const [weightKg, setWeightKg] = useState('26')
   const [weekdays, setWeekdays] = useState<number[]>([1, 3, 5])
@@ -50,6 +54,10 @@ export function OnboardingPage() {
       return
     }
     if (step === 1) {
+      if (!sex) {
+        setError('Bố mẹ chọn giúp bé là bé trai hay bé gái nhé.')
+        return
+      }
       const height = Number(heightCm)
       const weight = Number(weightKg)
       if (!Number.isFinite(height) || height < 80 || height > 200) {
@@ -66,11 +74,16 @@ export function OnboardingPage() {
   }
 
   const finish = () => {
+    if (!sex) {
+      setError('Bố mẹ chọn giúp bé là bé trai hay bé gái nhé.')
+      setStep(1)
+      return
+    }
     if (!weekdays.length) {
       setError('Bé cần ít nhất một ngày tập trong tuần.')
       return
     }
-    completeOnboarding({
+    const input = {
       email: data.parent?.email ?? 'phuhuynh@strongkids.vn',
       nickname: nickname.trim(),
       birthYear,
@@ -80,7 +93,13 @@ export function OnboardingPage() {
       weightKg: Number(weightKg),
       weekdays,
       durationMin,
-    })
+    }
+    if (addingChild) {
+      addChild(input)
+      navigate('/phu-huynh', { replace: true })
+      return
+    }
+    completeOnboarding(input)
   }
 
   const toggleDay = (day: number) => {
@@ -96,8 +115,14 @@ export function OnboardingPage() {
       <div className="mx-auto flex min-h-dvh w-full max-w-[520px] flex-col px-5 pb-10 pt-5">
         <PageHeader
           title={step === 0 ? 'Bé là ai nhỉ?' : step === 1 ? 'Chỉ số của bé' : 'Lịch tập vui'}
-          subtitle={`Bước ${step + 1}/3 · Hồ sơ của ${nickname.trim() || 'bé'}`}
-          onBack={step === 0 ? undefined : () => setStep((step - 1) as Step)}
+          subtitle={`Bước ${step + 1}/3 · ${addingChild ? 'Hồ sơ mới của' : 'Hồ sơ của'} ${nickname.trim() || 'bé'}`}
+          onBack={
+            step === 0
+              ? addingChild
+                ? () => navigate('/phu-huynh')
+                : undefined
+              : () => setStep((step - 1) as Step)
+          }
         />
 
         <div className="mb-5 flex gap-1.5">
@@ -191,18 +216,18 @@ export function OnboardingPage() {
                 <div>
                   <p className="text-sm font-bold text-ink">Giới tính sinh học</p>
                   <p className="mt-0.5 text-xs font-semibold text-muted">
-                    Chỉ dùng để đọc bảng tăng trưởng WHO. Bé có thể bỏ qua.
+                    Chỉ dùng để đọc bảng tăng trưởng WHO trong khu phụ huynh.
                   </p>
-                  <div className="mt-2.5 grid grid-cols-3 gap-2">
+                  <div className="mt-2.5 grid grid-cols-2 gap-2">
                     {[
                       { value: 'male' as const, label: 'Bé trai' },
                       { value: 'female' as const, label: 'Bé gái' },
-                      { value: null, label: 'Không cần' },
                     ].map((option) => (
                       <button
-                        key={option.label}
+                        key={option.value}
                         type="button"
                         onClick={() => setSex(option.value)}
+                        aria-pressed={sex === option.value}
                         className={cx(
                           'focus-ring rounded-2xl border-2 px-2 py-3 text-sm font-bold transition',
                           sex === option.value
@@ -364,7 +389,7 @@ export function OnboardingPage() {
           ) : (
             <Button size="lg" fullWidth variant="teal" onClick={finish}>
               <Icon name="check" />
-              Tạo hồ sơ và bắt đầu
+              {addingChild ? 'Lưu hồ sơ bé' : 'Tạo hồ sơ và bắt đầu'}
             </Button>
           )}
           <p className="mt-3 text-center text-xs font-semibold text-muted">

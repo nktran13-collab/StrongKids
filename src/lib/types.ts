@@ -22,6 +22,7 @@ export interface Child {
 
 export interface Measurement {
   id: string
+  childId: string
   dateKey: string
   heightCm: number
   weightKg: number
@@ -66,13 +67,16 @@ export interface BestEntry {
 }
 
 export interface AppData {
-  version: 1
+  version: 2
   parent: ParentAccount | null
-  child: Child | null
+  children: Child[]
+  activeChildId: string | null
   measurements: Measurement[]
-  schedule: Schedule
+  /** Mỗi bé có lịch tập riêng, khoá theo childId. */
+  schedules: Record<string, Schedule>
   sessions: WorkoutSession[]
-  bests: Record<string, BestEntry>
+  /** Kỷ lục tách theo từng bé: childId → `slug:metric` → kỷ lục. */
+  bests: Record<string, Record<string, BestEntry>>
   pinHash: string | null
   createdAt: string
 }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../../app/store'
-import { bandForAge, recommendedDuration } from '../../lib/age'
+import { bandForChild, recommendedDuration } from '../../lib/age'
 import {
   formatMonthYear,
   isoWeekday,
@@ -12,11 +12,17 @@ import { computeStreak } from '../../lib/streak'
 import { Badge, Button, Card, Icon, PageHeader, SegmentedControl, cx } from '../../components/ui'
 
 export function SchedulePage() {
-  const { data, setSchedule } = useStore()
-  const child = data.child!
-  const band = bandForAge(new Date().getFullYear() - child.birthYear)
-  const [weekdays, setWeekdays] = useState<number[]>(data.schedule.weekdays)
-  const [durationMin, setDurationMin] = useState<20 | 25 | 30>(data.schedule.durationMin)
+  const { activeChild } = useStore()
+  // Mỗi bé một lịch riêng: đổi hồ sơ thì dựng lại phần chỉnh lịch.
+  return <ScheduleEditor key={activeChild!.id} />
+}
+
+function ScheduleEditor() {
+  const { activeChild, activeSchedule, activeSessions, setSchedule } = useStore()
+  const child = activeChild!
+  const band = bandForChild(child.birthYear, child.birthMonth)
+  const [weekdays, setWeekdays] = useState<number[]>(activeSchedule.weekdays)
+  const [durationMin, setDurationMin] = useState<20 | 25 | 30>(activeSchedule.durationMin)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
 
@@ -28,8 +34,8 @@ export function SchedulePage() {
   }))
 
   const streak = computeStreak({
-    sessions: data.sessions,
-    weekdays: data.schedule.weekdays,
+    sessions: activeSessions,
+    weekdays: activeSchedule.weekdays,
     startKey: child.createdAt.slice(0, 10),
     todayKey: today,
   })
@@ -37,11 +43,11 @@ export function SchedulePage() {
   const completedDates = useMemo(
     () =>
       new Set(
-        data.sessions
+        activeSessions
           .filter((session) => session.status === 'completed')
           .map((session) => session.dateKey),
       ),
-    [data.sessions],
+    [activeSessions],
   )
 
   const cells = useMemo(

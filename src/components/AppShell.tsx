@@ -13,13 +13,13 @@ const NAV = [
 ]
 
 export function AppShell() {
-  const { data } = useStore()
+  const { data, activeChild, activeSchedule, activeSessions, setActiveChild } = useStore()
   const online = useOnline()
-  const child = data.child
+  const child = activeChild
   const streak = child
     ? computeStreak({
-        sessions: data.sessions,
-        weekdays: data.schedule.weekdays,
+        sessions: activeSessions,
+        weekdays: activeSchedule.weekdays,
         startKey: child.createdAt.slice(0, 10),
         todayKey: todayKey(),
       })
@@ -71,6 +71,49 @@ export function AppShell() {
             </NavLink>
           </div>
         </header>
+
+        {data.children.length > 1 && (
+          <div
+            className="no-scrollbar -mx-5 mb-3 flex gap-2 overflow-x-auto px-5 pb-1"
+            role="group"
+            aria-label="Chọn hồ sơ bé"
+          >
+            {data.children.map((item) => {
+              const active = item.id === child?.id
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveChild(item.id)}
+                  aria-pressed={active}
+                  className={cx(
+                    'focus-ring flex shrink-0 items-center gap-1.5 rounded-full py-1.5 pl-1.5 pr-3 text-xs font-extrabold transition',
+                    active
+                      ? 'bg-ink text-white shadow-sm'
+                      : 'bg-white text-muted shadow-sm hover:text-ink',
+                  )}
+                >
+                  <span
+                    className={cx(
+                      'grid h-7 w-7 place-items-center rounded-full text-xs font-black',
+                      active ? 'bg-white/20 text-white' : 'bg-sun-soft text-[#8A5C00]',
+                    )}
+                  >
+                    {item.nickname.slice(0, 1).toUpperCase()}
+                  </span>
+                  {item.nickname}
+                </button>
+              )
+            })}
+            <NavLink
+              to="/them-be"
+              className="focus-ring flex shrink-0 items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-teal-dark shadow-sm"
+            >
+              <span className="text-base leading-none">+</span>
+              Thêm bé
+            </NavLink>
+          </div>
+        )}
 
         {!online && (
           <div

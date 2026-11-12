@@ -18,8 +18,14 @@ type BandFilter = AgeBand | 'all'
 type CategoryFilter = Category | 'all'
 
 export function LibraryPage() {
-  const { data } = useStore()
-  const child = data.child!
+  const { activeChild } = useStore()
+  // Nhóm tuổi gợi ý phụ thuộc từng bé: đổi hồ sơ thì dựng lại bộ lọc.
+  return <LibraryView key={activeChild!.id} />
+}
+
+function LibraryView() {
+  const { activeChild, activeBests } = useStore()
+  const child = activeChild!
   const childBand = bandForAge(calculateAge(child.birthYear, child.birthMonth))
   const [band, setBand] = useState<BandFilter>(childBand)
   const [category, setCategory] = useState<CategoryFilter>('all')
@@ -91,7 +97,7 @@ export function LibraryPage() {
       {filtered.length ? (
         <div className="grid grid-cols-2 gap-3">
           {filtered.map((exercise) => {
-            const best = data.bests[`${exercise.slug}:${exercise.metric}`]
+            const best = activeBests[`${exercise.slug}:${exercise.metric}`]
             return (
               <button
                 key={exercise.slug}
@@ -143,7 +149,7 @@ export function LibraryPage() {
         exercise={selected}
         band={childBand}
         onClose={() => setSelected(null)}
-        record={selected ? data.bests[`${selected.slug}:${selected.metric}`] : undefined}
+        record={selected ? activeBests[`${selected.slug}:${selected.metric}`] : undefined}
       />
     </div>
   )

@@ -29,15 +29,21 @@ export function formatRecordValue(metric: Metric, value: number): string {
 }
 
 export function HomePage() {
-  const { data, startSession } = useStore()
+  const {
+    activeChild,
+    activeSchedule,
+    activeSessions,
+    activeBests,
+    startSession,
+  } = useStore()
   const navigate = useNavigate()
-  const child = data.child!
+  const child = activeChild!
   const today = todayKey()
   const band = bandForAge(calculateAge(child.birthYear, child.birthMonth))
   const weekday = isoWeekday(today)
-  const isScheduled = data.schedule.weekdays.includes(weekday)
+  const isScheduled = activeSchedule.weekdays.includes(weekday)
 
-  const todaySessions = data.sessions.filter(
+  const todaySessions = activeSessions.filter(
     (session) => session.dateKey === today && session.status === 'completed',
   )
   const todayCompleted = todaySessions[0] ?? null
@@ -58,8 +64,8 @@ export function HomePage() {
     : 0
 
   const streak = computeStreak({
-    sessions: data.sessions,
-    weekdays: data.schedule.weekdays,
+    sessions: activeSessions,
+    weekdays: activeSchedule.weekdays,
     startKey: child.createdAt.slice(0, 10),
     todayKey: today,
   })
@@ -67,11 +73,11 @@ export function HomePage() {
   const completedDates = useMemo(
     () =>
       new Set(
-        data.sessions
+        activeSessions
           .filter((session) => session.status === 'completed')
           .map((session) => session.dateKey),
       ),
-    [data.sessions],
+    [activeSessions],
   )
 
   const weekStart = startOfWeek(today)
@@ -82,7 +88,7 @@ export function HomePage() {
       key,
       label: WEEKDAY_SHORT[index],
       day: Number(key.slice(8, 10)),
-      scheduled: data.schedule.weekdays.includes(dayWeekday),
+      scheduled: activeSchedule.weekdays.includes(dayWeekday),
       completed: completedDates.has(key),
       today: key === today,
       past: key < today,
@@ -90,14 +96,14 @@ export function HomePage() {
   })
 
   const recentBests = useMemo(() => {
-    return Object.entries(data.bests)
+    return Object.entries(activeBests)
       .filter(([, best]) => best.value > 0)
       .sort((a, b) => b[1].achievedAt.localeCompare(a[1].achievedAt))
       .slice(0, 3)
-  }, [data.bests])
+  }, [activeBests])
 
   const startWorkout = () => {
-    const recentSlugs = [...data.sessions]
+    const recentSlugs = [...activeSessions]
       .filter((session) => session.status === 'completed')
       .sort((a, b) => b.dateKey.localeCompare(a.dateKey))
       .slice(0, 3)
@@ -105,7 +111,7 @@ export function HomePage() {
     const plan = buildSessionPlan({
       childId: child.id,
       band,
-      durationMin: data.schedule.durationMin,
+      durationMin: activeSchedule.durationMin,
       dateKey: today,
       recentSlugs,
     })
@@ -117,12 +123,12 @@ export function HomePage() {
     const plan = buildSessionPlan({
       childId: child.id,
       band,
-      durationMin: data.schedule.durationMin,
+      durationMin: activeSchedule.durationMin,
       dateKey: today,
       recentSlugs: [],
     })
     return plan
-  }, [child.id, band, data.schedule.durationMin, today])
+  }, [child.id, band, activeSchedule.durationMin, today])
 
   const firstMain = getExercise(todayPlanPreview.mainSlugs[0])
 

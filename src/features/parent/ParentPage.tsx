@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useStore, type CloudStatus } from '../../app/store'
 import { calculateAge, bandForChild, BAND_LABEL } from '../../lib/age'
 import { BMI_DISCLAIMER, calculateBmi, calculateExactBmi, formatBmi } from '../../lib/bmi'
@@ -67,8 +67,20 @@ export function ParentPage() {
 
 function ParentDashboard() {
   const navigate = useNavigate()
-  const { data, addMeasurement, exportData, resetAll, cloudStatus } = useStore()
-  const child = data.child!
+  const {
+    data,
+    activeChild,
+    activeSchedule,
+    activeMeasurements,
+    activeSessions,
+    addMeasurement,
+    exportData,
+    resetAll,
+    cloudStatus,
+    setActiveChild,
+    removeChild,
+  } = useStore()
+  const child = activeChild!
   const { canInstall, isStandalone, install } = useInstallPrompt()
   const today = todayKey()
   const age = calculateAge(child.birthYear, child.birthMonth)
@@ -90,20 +102,18 @@ function ParentDashboard() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [removeChildOpen, setRemoveChildOpen] = useState(false)
 
-  const measurements = useMemo(
-    () => [...data.measurements].sort((a, b) => a.dateKey.localeCompare(b.dateKey)),
-    [data.measurements],
-  )
+  const measurements = activeMeasurements
 
-  const completed = data.sessions.filter((session) => session.status === 'completed')
+  const completed = activeSessions.filter((session) => session.status === 'completed')
   const totalMinutes = completed.reduce(
     (sum, session) => sum + Math.max(1, Math.round(session.activeSec / 60)),
     0,
   )
   const streak = computeStreak({
-    sessions: data.sessions,
-    weekdays: data.schedule.weekdays,
+    sessions: activeSessions,
+    weekdays: activeSchedule.weekdays,
     startKey: child.createdAt.slice(0, 10),
     todayKey: today,
   })
@@ -126,8 +136,77 @@ function ParentDashboard() {
     <div className="pb-2">
       <PageHeader
         title="Khu phụ huynh"
-        subtitle="Thông tin sức khoẻ và dữ liệu của bé"
+        subtitle="Thông tin sức khoẻ và dữ liệu của các bé"
       />
+
+      <Card className="mb-3 p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-extrabold text-ink">Hồ sơ các bé</h2>
+            <p className="mt-0.5 text-xs font-semibold text-muted">
+              {data.children.length} hồ sơ · chọn bé đang tập
+            </p>
+          </div>
+          <Link
+            to="/them-be"
+            className="focus-ring flex shrink-0 items-center gap-1 rounded-full bg-teal-dark px-3 py-2 text-xs font-extrabold text-white"
+          >
+            <span className="text-base leading-none">+</span>
+            Thêm bé
+          </Link>
+        </div>
+
+        <div className="mt-3 space-y-2">
+          {data.children.map((item) => {
+            const active = item.id === child.id
+            return (
+              <div
+                key={item.id}
+                className={cx(
+                  'flex items-center gap-2 rounded-2xl border-2 p-2 transition',
+                  active ? 'border-teal bg-mint/50' : 'border-line bg-white',
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => setActiveChild(item.id)}
+                  aria-pressed={active}
+                  className="focus-ring flex min-w-0 flex-1 items-center gap-2.5 rounded-xl text-left"
+                >
+                  <span
+                    className={cx(
+                      'grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-black',
+                      active ? 'bg-teal-dark text-white' : 'bg-sun-soft text-[#8A5C00]',
+                    )}
+                  >
+                    {item.nickname.slice(0, 1).toUpperCase()}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-extrabold text-ink">
+                      {item.nickname}
+                    </span>
+                    <span className="block truncate text-xs font-semibold text-muted">
+                      {calculateAge(item.birthYear, item.birthMonth)} tuổi · Nhóm{' '}
+                      {BAND_LABEL[bandForChild(item.birthYear, item.birthMonth)]}
+                    </span>
+                  </span>
+                </button>
+                {active && <Badge tone="teal">Đang chọn</Badge>}
+              </div>
+            )
+          })}
+        </div>
+
+        {data.children.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setRemoveChildOpen(true)}
+            className="focus-ring mt-3 w-full rounded-xl py-2 text-xs font-bold text-coral-dark hover:bg-peach/60"
+          >
+            Xoá hồ sơ bé đang chọn
+          </button>
+        )}
+      </Card>
 
       <Card className="p-5">
         <div className="flex items-center gap-3">
@@ -359,6 +438,33 @@ function ParentDashboard() {
         dùng đại trà.
       </p>
 
+      <Modal
+        open={removeChildOpen}
+        onClose={() => setRemoveChildOpen(false)}
+        title={`Xoá hồ sơ ${child.nickname}?`}
+        footer={
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="secondary" onClick={() => setRemoveChildOpen(false)}>
+              Giữ lại
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                removeChild(child.id)
+                setRemoveChildOpen(false)
+              }}
+            >
+              Xoá hồ sơ
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm font-semibold leading-relaxed text-muted">
+          Lịch tập, số đo, buổi tập và kỷ lục của {child.nickname} sẽ bị xoá trên thiết bị này và
+          máy chủ. Hồ sơ của các bé khác vẫn được giữ nguyên.
+        </p>
+      </Modal>
+
       <MeasurementModal
         open={measureOpen}
         onClose={() => setMeasureOpen(false)}
@@ -413,7 +519,7 @@ function ParentDashboard() {
         }
       >
         <p className="text-sm font-semibold leading-relaxed text-muted">
-          Toàn bộ hồ sơ bé, lịch sử buổi tập và kỷ lục trên thiết bị và máy chủ sẽ bị xoá vĩnh
+          Toàn bộ hồ sơ các bé, lịch sử buổi tập và kỷ lục trên thiết bị và máy chủ sẽ bị xoá vĩnh
           viễn. Bạn nên xuất dữ liệu trước nếu muốn lưu lại.
         </p>
         {deleteError && (
