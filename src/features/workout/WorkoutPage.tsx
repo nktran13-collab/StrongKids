@@ -290,7 +290,7 @@ export function WorkoutPage() {
   // Chỉ đọc thay đổi bước để trình đọc màn hình không đọc từng giây đếm ngược.
   const announcement = (() => {
     if (stage === 'intro' && plan) {
-      return `Buổi tập ${plan.durationMin} phút. Nhấn Bắt đầu thôi khi bé sẵn sàng.`
+      return `Buổi tập ${plan.durationMin} phút. Nhấn Bắt đầu khi bé sẵn sàng.`
     }
     if (stage === 'countdown' && exercise) {
       return `Chuẩn bị bắt đầu ${exercise.nameVi}.`
@@ -600,14 +600,14 @@ function IntroScreen({
             không bị trừ sao.
           </div>
 
-          <div className="mt-4 grid grid-cols-[auto_1fr] gap-2">
+          <div className="mt-4 grid grid-cols-2 gap-2">
             <Button variant="secondary" onClick={onExit}>
               <Icon name="left" className="h-4 w-4" />
               Để sau
             </Button>
-            <Button size="lg" onClick={onStart}>
+            <Button onClick={onStart}>
               <Icon name="play" filled className="h-5 w-5" />
-              Bắt đầu thôi!
+              Bắt đầu!
             </Button>
           </div>
         </div>
