@@ -212,58 +212,55 @@ export function OnboardingPage() {
         {step === 1 && (
           <div className="animate-slide-up space-y-4">
             <Card className="p-5">
-              <div className="space-y-4">
-                <div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
                   <p className="text-sm font-bold text-ink">Giới tính sinh học</p>
                   <p className="mt-0.5 text-xs font-semibold text-muted">
                     Chỉ dùng để đọc bảng tăng trưởng WHO trong khu phụ huynh.
                   </p>
-                  <div className="mt-2.5 grid grid-cols-2 gap-2">
-                    {[
-                      { value: 'male' as const, label: 'Bé trai' },
-                      { value: 'female' as const, label: 'Bé gái' },
-                    ].map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setSex(option.value)}
-                        aria-pressed={sex === option.value}
-                        className={cx(
-                          'focus-ring rounded-2xl border-2 px-2 py-3 text-sm font-bold transition',
-                          sex === option.value
-                            ? 'border-coral bg-peach text-coral-dark'
-                            : 'border-line bg-white text-muted hover:border-coral/30',
-                        )}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Chiều cao" hint="cm">
-                    <TextInput
-                      type="number"
-                      inputMode="decimal"
-                      min={80}
-                      max={200}
-                      value={heightCm}
-                      onChange={(event) => setHeightCm(event.target.value)}
-                    />
-                  </Field>
-                  <Field label="Cân nặng" hint="kg">
-                    <TextInput
-                      type="number"
-                      inputMode="decimal"
-                      min={10}
-                      max={100}
-                      step="0.1"
-                      value={weightKg}
-                      onChange={(event) => setWeightKg(event.target.value)}
-                    />
-                  </Field>
-                </div>
+                {[
+                  { value: 'male' as const, label: 'Bé trai' },
+                  { value: 'female' as const, label: 'Bé gái' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setSex(option.value)}
+                    aria-pressed={sex === option.value}
+                    className={cx(
+                      'focus-ring flex h-12 items-center justify-center rounded-2xl border-2 text-sm font-bold transition',
+                      sex === option.value
+                        ? 'border-coral bg-peach text-coral-dark'
+                        : 'border-line bg-white text-muted hover:border-coral/30',
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+
+                <Field label="Chiều cao" hint="cm">
+                  <TextInput
+                    type="number"
+                    inputMode="decimal"
+                    min={80}
+                    max={200}
+                    value={heightCm}
+                    onChange={(event) => setHeightCm(event.target.value)}
+                  />
+                </Field>
+                <Field label="Cân nặng" hint="kg">
+                  <TextInput
+                    type="number"
+                    inputMode="decimal"
+                    min={10}
+                    max={100}
+                    step="0.1"
+                    value={weightKg}
+                    onChange={(event) => setWeightKg(event.target.value)}
+                  />
+                </Field>
               </div>
             </Card>
 
