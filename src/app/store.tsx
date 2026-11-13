@@ -21,6 +21,7 @@ import {
   verifyLoginOtp,
 } from '../lib/cloud'
 import { cloudEnabled, supabase } from '../lib/supabase'
+import { checkPin, createPinHash } from '../lib/pin'
 import type {
   AppData,
   BestEntry,
@@ -42,14 +43,6 @@ export type CloudStatus = 'off' | 'demo' | 'idle' | 'saving' | 'saved' | 'offlin
 function uid(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
   return `id-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-}
-
-export function hashPin(pin: string): string {
-  let hash = 5381
-  for (let i = 0; i < pin.length; i += 1) {
-    hash = (hash * 33) ^ pin.charCodeAt(i)
-  }
-  return (hash >>> 0).toString(36)
 }
 
 const DEFAULT_SCHEDULE: Schedule = { weekdays: [1, 3, 5], durationMin: 25 }
@@ -111,7 +104,9 @@ export function normalizeData(value: unknown): AppData | null {
       ? (raw.parent as AppData['parent'])
       : null
   const sessions = Array.isArray(raw.sessions) ? (raw.sessions as WorkoutSession[]) : []
-  const pinHash = typeof raw.pinHash === 'string' ? raw.pinHash : null
+  // Hash kiểu cũ không còn dùng được; coi như chưa đặt PIN để phụ huynh tạo mã mới.
+  const pinHash =
+    typeof raw.pinHash === 'string' && raw.pinHash.startsWith('pbkdf2$') ? raw.pinHash : null
   const createdAt = typeof raw.createdAt === 'string' ? raw.createdAt : base.createdAt
 
   if (raw.version === 1) {
@@ -499,8 +494,9 @@ interface StoreValue {
   ) => { isNewBest: boolean; previousBest?: number; isFirst: boolean }
   completeSession: (sessionId: string, activeSec: number) => void
   abandonSession: (sessionId: string) => void
-  setPin: (pin: string) => void
-  verifyPin: (pin: string) => boolean
+  setPin: (pin: string) => Promise<void>
+  verifyPin: (pin: string) => Promise<boolean>
+  removePin: () => void
   exportData: () => string
   resetAll: () => Promise<{ ok: boolean; message: string }>
 }
@@ -1215,16 +1211,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   )
 
   const setPin = useCallback(
-    (pin: string) => {
-      update((current) => ({ ...current, pinHash: hashPin(pin) }))
+    async (pin: string) => {
+      const pinHash = await createPinHash(pin)
+      update((current) => ({ ...current, pinHash }))
     },
     [update],
   )
 
-  const verifyPin = useCallback((pin: string) => hashPin(pin) === dataRef.current.pinHash, [])
+  const verifyPin = useCallback(
+    (pin: string) => checkPin(pin, dataRef.current.pinHash),
+    [],
+  )
+
+  const removePin = useCallback(() => {
+    update((current) => (current.pinHash ? { ...current, pinHash: null } : current))
+  }, [update])
 
   const exportData = useCallback(() => {
-    // Mã PIN chỉ dùng để khoá trên thiết bị này, không xuất kèm dữ liệu.
+    // Hash PIN không cần thiết trong bản xuất dữ liệu của phụ huynh.
     const snapshot = { ...dataRef.current, pinHash: undefined }
     return JSON.stringify(snapshot, null, 2)
   }, [])
@@ -1330,6 +1334,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       abandonSession,
       setPin,
       verifyPin,
+      removePin,
       exportData,
       resetAll,
     }),
@@ -1360,6 +1365,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       abandonSession,
       setPin,
       verifyPin,
+      removePin,
       exportData,
       resetAll,
     ],

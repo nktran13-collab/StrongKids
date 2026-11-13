@@ -28,6 +28,7 @@ import {
   cx,
 } from '../../components/ui'
 import { TurnstileWidget } from '../../components/TurnstileWidget'
+import { ParentPinGate } from './ParentPinGate'
 
 function syncCopy(status: CloudStatus): { text: string; tone: string } {
   switch (status) {
@@ -64,7 +65,11 @@ function syncCopy(status: CloudStatus): { text: string; tone: string } {
 }
 
 export function ParentPage() {
-  return <ParentDashboard />
+  return (
+    <ParentPinGate>
+      <ParentDashboard />
+    </ParentPinGate>
+  )
 }
 
 function ParentDashboard() {
@@ -414,7 +419,11 @@ function ParentDashboard() {
           </p>
           <p>
             {accountVerified
-              ? 'Email đã xác thực. Bố mẹ đăng nhập bằng mã gửi tới email này trên thiết bị khác. Khu phụ huynh chưa có mã PIN riêng.'
+              ? `Email đã xác thực. Bố mẹ đăng nhập bằng mã gửi tới email này trên thiết bị khác. ${
+                  data.pinHash
+                    ? 'Khu phụ huynh đang được khoá bằng mã PIN.'
+                    : 'Bố mẹ có thể tạo mã PIN để khoá Khu phụ huynh.'
+                }`
               : accountEmail
                 ? 'Email chưa được xác thực; hồ sơ đang gắn với trình duyệt này. Xác thực email để giữ hồ sơ khi đổi thiết bị hoặc xoá dữ liệu trình duyệt.'
                 : 'Đây là bản demo. Tạo tài khoản bằng email để lưu hồ sơ lên máy chủ.'}

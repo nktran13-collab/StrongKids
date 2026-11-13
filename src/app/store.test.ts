@@ -63,4 +63,23 @@ describe('normalizeData', () => {
     expect(normalizeData(null)).toBeNull()
     expect(normalizeData({ version: 99 })).toBeNull()
   })
+
+  it('bỏ hash PIN kiểu cũ để phụ huynh không bị khoá ngoài', () => {
+    const base = {
+      version: 2,
+      parent: { email: 'a@b.c', consentedAt: '2026-01-01T00:00:00.000Z' },
+      children: [child],
+      activeChildId: 'c1',
+      measurements: [],
+      schedules: {},
+      sessions: [],
+      bests: {},
+      createdAt: '2026-01-01T00:00:00.000Z',
+    }
+
+    expect(normalizeData({ ...base, pinHash: 'djb2$9f2c' })?.pinHash).toBeNull()
+    expect(normalizeData({ ...base, pinHash: 'pbkdf2$210000$c2FsdA==$aGFzaA==' })?.pinHash).toBe(
+      'pbkdf2$210000$c2FsdA==$aGFzaA==',
+    )
+  })
 })
