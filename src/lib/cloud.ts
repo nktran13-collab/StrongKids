@@ -40,11 +40,14 @@ export async function deleteFamilyState(userId: string): Promise<void> {
   if (error) throw error
 }
 
-/** Gửi mã đăng nhập 6 số tới email phụ huynh. */
-export async function sendLoginOtp(email: string): Promise<void> {
+/** Gửi mã đăng nhập 6 số tới email phụ huynh, kèm mã xác minh captcha. */
+export async function sendLoginOtp(email: string, captchaToken?: string): Promise<void> {
   const { error } = await client().auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: true },
+    options: {
+      shouldCreateUser: true,
+      ...(captchaToken ? { captchaToken } : {}),
+    },
   })
   if (error) throw error
 }

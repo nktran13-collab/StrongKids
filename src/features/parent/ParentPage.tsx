@@ -27,6 +27,7 @@ import {
   TextInput,
   cx,
 } from '../../components/ui'
+import { TurnstileWidget } from '../../components/TurnstileWidget'
 
 function syncCopy(status: CloudStatus): { text: string; tone: string } {
   switch (status) {
@@ -686,6 +687,12 @@ function VerifyEmailModal({
             </Field>
           </div>
 
+          <TurnstileWidget
+            key={otp.captchaAttempt}
+            onToken={otp.setCaptchaToken}
+            className="mt-3"
+          />
+
           {otp.error && (
             <p className="mt-3 rounded-xl bg-peach px-3 py-2 text-xs font-bold text-coral-dark">
               {otp.error}
@@ -736,6 +743,12 @@ function VerifyEmailModal({
             <Icon name="check" className="h-4 w-4" />
             {otp.busy ? 'Đang xác thực…' : 'Xác thực email'}
           </Button>
+
+          <TurnstileWidget
+            key={otp.captchaAttempt}
+            onToken={otp.setCaptchaToken}
+            className="mt-3"
+          />
 
           <div className="mt-3 flex items-center justify-between text-xs font-bold">
             <button

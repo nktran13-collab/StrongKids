@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useStore } from '../../app/store'
+import { captchaEnabled } from '../../components/TurnstileWidget'
 
 const RESEND_SECONDS = 60
 
@@ -19,12 +20,25 @@ export function useEmailOtp({
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [resendIn, setResendIn] = useState(0)
+  const [captchaToken, setCaptchaToken] = useState('')
+  const [captchaAttempt, setCaptchaAttempt] = useState(0)
 
   useEffect(() => {
     if (resendIn <= 0) return
     const timer = window.setTimeout(() => setResendIn((value) => value - 1), 1000)
     return () => window.clearTimeout(timer)
   }, [resendIn])
+
+  const refreshCaptcha = () => {
+    setCaptchaToken('')
+    setCaptchaAttempt((value) => value + 1)
+  }
+
+  const captchaReady = () => {
+    if (!captchaEnabled || captchaToken) return true
+    setError('Hệ thống đang xác minh trình duyệt. Bố mẹ chờ ô xác minh hiện dấu tích rồi thử lại nhé.')
+    return false
+  }
 
   const send = async () => {
     const clean = email.trim()
@@ -36,10 +50,12 @@ export function useEmailOtp({
       setError('Bố mẹ cần xác nhận là cha mẹ hoặc người giám hộ của bé.')
       return false
     }
+    if (!captchaReady()) return false
     setError('')
     setBusy(true)
-    const result = await sendEmailOtp(clean)
+    const result = await sendEmailOtp(clean, captchaToken)
     setBusy(false)
+    refreshCaptcha()
     if (!result.ok) {
       setError(result.message)
       return false
@@ -52,9 +68,11 @@ export function useEmailOtp({
 
   const resend = async () => {
     if (resendIn > 0 || busy) return
+    if (!captchaReady()) return
     setBusy(true)
-    const result = await sendEmailOtp(email.trim())
+    const result = await sendEmailOtp(email.trim(), captchaToken)
     setBusy(false)
+    refreshCaptcha()
     if (!result.ok) {
       setError(result.message)
       return
@@ -99,6 +117,9 @@ export function useEmailOtp({
     setError,
     busy,
     resendIn,
+    captchaToken,
+    setCaptchaToken,
+    captchaAttempt,
     send,
     resend,
     verify,

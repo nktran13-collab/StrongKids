@@ -4,6 +4,7 @@ import { getExercise } from '../../content/catalog'
 import { ExerciseArt } from '../../components/ExerciseArt'
 import { Badge, Button, Card, Icon, TextInput } from '../../components/ui'
 import { Logo } from '../../components/AppShell'
+import { TurnstileWidget } from '../../components/TurnstileWidget'
 import { cloudEnabled } from '../../lib/supabase'
 import { useEmailOtp } from './useEmailOtp'
 
@@ -120,6 +121,12 @@ export function AuthPage() {
                 </span>
               </label>
 
+              <TurnstileWidget
+                key={otp.captchaAttempt}
+                onToken={otp.setCaptchaToken}
+                className="mt-3"
+              />
+
               {otp.error && (
                 <p className="mt-3 rounded-xl bg-peach px-3 py-2 text-xs font-bold text-coral-dark">
                   {otp.error}
@@ -186,6 +193,12 @@ export function AuthPage() {
                 <Icon name="check" className="h-4 w-4" />
                 {otp.busy ? 'Đang xác thực…' : 'Xác thực và tiếp tục'}
               </Button>
+
+              <TurnstileWidget
+                key={otp.captchaAttempt}
+                onToken={otp.setCaptchaToken}
+                className="mt-3"
+              />
 
               <div className="mt-3 flex items-center justify-between text-xs font-bold">
                 <button

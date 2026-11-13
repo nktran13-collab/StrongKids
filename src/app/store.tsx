@@ -475,7 +475,7 @@ interface StoreValue {
   activeMeasurements: Measurement[]
   activeSessions: WorkoutSession[]
   activeBests: Record<string, BestEntry>
-  sendEmailOtp: (email: string) => Promise<{ ok: boolean; message: string }>
+  sendEmailOtp: (email: string, captchaToken?: string) => Promise<{ ok: boolean; message: string }>
   verifyEmailOtp: (email: string, token: string) => Promise<{ ok: boolean; message: string }>
   startDemo: () => void
   completeOnboarding: (input: OnboardingInput) => void
@@ -817,7 +817,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const sendEmailOtp = useCallback(async (email: string) => {
+  const sendEmailOtp = useCallback(async (email: string, captchaToken?: string) => {
     if (!cloudEnabled || !supabase) {
       return {
         ok: false,
@@ -829,11 +829,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       emailRef.current = clean
       if (!readConsent(clean)) rememberConsent(clean)
-      await sendLoginOtp(clean)
+      await sendLoginOtp(clean, captchaToken)
       return { ok: true, message: '' }
     } catch (error) {
       const detail = error instanceof Error ? error.message : ''
       console.error('StrongKids: không gửi được mã đăng nhập', error)
+      if (/captcha/i.test(detail)) {
+        return {
+          ok: false,
+          message:
+            'Chưa xác minh được trình duyệt. Bố mẹ tải lại trang, chờ ô xác minh hiện dấu tích rồi thử lại nhé.',
+        }
+      }
       if (/rate limit|too many|security purposes/i.test(detail)) {
         return {
           ok: false,
