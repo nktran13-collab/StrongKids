@@ -17,7 +17,8 @@ import {
   deleteFamilyState,
   fetchFamilyState,
   saveFamilyState,
-  signInAnonymously,
+  sendLoginOtp,
+  verifyLoginOtp,
 } from '../lib/cloud'
 import { cloudEnabled, supabase } from '../lib/supabase'
 import type {
@@ -465,6 +466,8 @@ interface StoreValue {
   data: AppData
   authReady: boolean
   accountEmail: string | null
+  /** Email đã xác thực bằng mã OTP (không còn là phiên ẩn danh). */
+  accountVerified: boolean
   cloudStatus: CloudStatus
   /** Bé đang được chọn để tập; null khi chưa có hồ sơ nào. */
   activeChild: Child | null
@@ -472,7 +475,8 @@ interface StoreValue {
   activeMeasurements: Measurement[]
   activeSessions: WorkoutSession[]
   activeBests: Record<string, BestEntry>
-  startWithEmail: (email: string) => Promise<{ ok: boolean; message: string }>
+  sendEmailOtp: (email: string) => Promise<{ ok: boolean; message: string }>
+  verifyEmailOtp: (email: string, token: string) => Promise<{ ok: boolean; message: string }>
   startDemo: () => void
   completeOnboarding: (input: OnboardingInput) => void
   addChild: (input: OnboardingInput) => void
@@ -507,6 +511,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(emptyData)
   const [authReady, setAuthReady] = useState(!cloudEnabled)
   const [accountEmail, setAccountEmail] = useState<string | null>(null)
+  const [accountVerified, setAccountVerified] = useState(false)
   const [cloudStatus, setCloudStatus] = useState<CloudStatus>(cloudEnabled ? 'idle' : 'off')
 
   const dataRef = useRef(data)
@@ -638,6 +643,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!cloudEnabled || !session?.user) return
       const userId = session.user.id
       sessionRef.current = session
+      setAccountVerified(!session.user.is_anonymous)
       const cached = readCache(userId)
       // Người dùng ẩn danh trả email = '' (không phải null), nên phải dùng || để
       // rơi xuống email bố mẹ vừa nhập.
@@ -741,6 +747,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   )
 
   const handleAuthLost = useCallback(() => {
+    setAccountVerified(false)
     // Mất phiên do token hết hạn: vẫn cho dùng bản offline, chỉ báo chưa đồng bộ được.
     if (modeRef.current === 'account' && userIdRef.current) {
       if (mountedRef.current) setCloudStatus(navigator.onLine ? 'error' : 'offline')
@@ -810,12 +817,50 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const sendEmailOtp = useCallback(async (email: string) => {
+    if (!cloudEnabled || !supabase) {
+      return {
+        ok: false,
+        message:
+          'Máy chủ dữ liệu chưa được cấu hình. Bố mẹ xem hướng dẫn thiết lập Supabase rồi thử lại.',
+      }
+    }
+    const clean = email.trim()
+    try {
+      emailRef.current = clean
+      if (!readConsent(clean)) rememberConsent(clean)
+      await sendLoginOtp(clean)
+      return { ok: true, message: '' }
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : ''
+      console.error('StrongKids: không gửi được mã đăng nhập', error)
+      if (/rate limit|too many|security purposes/i.test(detail)) {
+        return {
+          ok: false,
+          message:
+            'Máy chủ đang giới hạn số lần gửi mã. Bố mẹ chờ khoảng một phút rồi thử lại nhé.',
+        }
+      }
+      if (/disabled|not allowed|not enabled/i.test(detail)) {
+        return {
+          ok: false,
+          message:
+            'Máy chủ chưa bật đăng nhập bằng email. Trong Supabase, vào Authentication → Providers → Email và bật lên rồi thử lại.',
+        }
+      }
+      return {
+        ok: false,
+        message: 'Chưa gửi được mã xác thực. Bố mẹ kiểm tra email và kết nối mạng rồi thử lại.',
+      }
+    }
+  }, [])
+
   /**
-   * Bản hiện tại chưa gửi email OTP. Bố mẹ nhập email để gắn hồ sơ; quyền truy cập
-   * dữ liệu dựa trên phiên ẩn danh của chính thiết bị/trình duyệt này.
+   * Xác thực mã OTP. Nếu thiết bị đang giữ dữ liệu của phiên ẩn danh cũ và tài khoản email
+   * chưa có hồ sơ trên máy chủ, chuyển dữ liệu đó sang tài khoản email để không mất hồ sơ.
    */
-  const startWithEmail = useCallback(
-    async (email: string) => {
+  const verifyEmailOtp = useCallback(
+    async (email: string, token: string) => {
       if (!cloudEnabled || !supabase) {
         return {
           ok: false,
@@ -824,43 +869,59 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       }
       const clean = email.trim()
+      const code = token.replace(/\D/g, '')
+      if (code.length !== 6) {
+        return { ok: false, message: 'Mã xác thực gồm 6 chữ số. Bố mẹ kiểm tra lại email nhé.' }
+      }
+      const oldUserId = userIdRef.current
+      const snapshot = modeRef.current === 'account' && oldUserId ? dataRef.current : null
+
       startingRef.current = true
       try {
-        emailRef.current = clean
         if (!readConsent(clean)) rememberConsent(clean)
+        const session = await verifyLoginOtp(clean, code)
+        const newUserId = session.user.id
 
-        const existing = await supabase.auth.getSession()
-        let session = existing.data.session
-        if (!session) session = await signInAnonymously()
-
-        await adoptSession(session, clean)
-
-        if (!dataRef.current.parent) {
-          return {
-            ok: false,
-            message: 'Chưa tạo được hồ sơ trên máy chủ. Bố mẹ kiểm tra mạng rồi thử lại.',
+        if (snapshot && oldUserId && oldUserId !== newUserId && snapshot.children.length) {
+          let remoteKnown = false
+          let remoteExists = false
+          try {
+            remoteExists = (await fetchFamilyState(newUserId)) !== null
+            remoteKnown = true
+          } catch {
+            // Không kiểm tra được bản trên máy chủ thì để adoptSession thử lại.
+          }
+          // Tài khoản email đã có hồ sơ thì ưu tiên bản trên máy chủ.
+          if (remoteKnown && !remoteExists) {
+            const next = withParent(snapshot, clean, readConsent(clean))
+            writeCache(newUserId, next)
+            markPending(newUserId)
+            dataRef.current = next
+            setData(next)
           }
         }
+
+        await adoptSession(session, clean)
         return { ok: true, message: '' }
       } catch (error) {
         const detail = error instanceof Error ? error.message : ''
-        console.error('StrongKids: không tạo được phiên đăng nhập', error)
-        if (/anonymous/i.test(detail) && /disabled|not allowed|not enabled/i.test(detail)) {
+        console.error('StrongKids: không xác thực được mã đăng nhập', error)
+        if (/expired|invalid|token/i.test(detail)) {
+          return {
+            ok: false,
+            message: 'Mã chưa đúng hoặc đã hết hạn. Bố mẹ kiểm tra lại hoặc bấm gửi mã mới nhé.',
+          }
+        }
+        if (/rate limit|too many|security purposes/i.test(detail)) {
           return {
             ok: false,
             message:
-              'Máy chủ chưa bật đăng nhập thiết bị. Trong Supabase, vào Authentication → Providers → Anonymous và bật lên rồi thử lại.',
-          }
-        }
-        if (/rate limit|too many/i.test(detail)) {
-          return {
-            ok: false,
-            message: 'Máy chủ đang giới hạn số lần tạo hồ sơ. Bố mẹ chờ khoảng một phút rồi thử lại.',
+              'Máy chủ đang giới hạn số lần xác thực. Bố mẹ chờ khoảng một phút rồi thử lại.',
           }
         }
         return {
           ok: false,
-          message: 'Chưa kết nối được máy chủ dữ liệu. Bố mẹ kiểm tra mạng rồi thử lại.',
+          message: 'Chưa xác thực được. Bố mẹ kiểm tra kết nối mạng rồi thử lại nhé.',
         }
       } finally {
         startingRef.current = false
@@ -1239,13 +1300,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       data,
       authReady,
       accountEmail,
+      accountVerified,
       cloudStatus,
       activeChild,
       activeSchedule,
       activeMeasurements,
       activeSessions,
       activeBests,
-      startWithEmail,
+      sendEmailOtp,
+      verifyEmailOtp,
       startDemo,
       completeOnboarding,
       addChild,
@@ -1267,13 +1330,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       data,
       authReady,
       accountEmail,
+      accountVerified,
       cloudStatus,
       activeChild,
       activeSchedule,
       activeMeasurements,
       activeSessions,
       activeBests,
-      startWithEmail,
+      sendEmailOtp,
+      verifyEmailOtp,
       startDemo,
       completeOnboarding,
       addChild,

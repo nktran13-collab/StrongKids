@@ -1,38 +1,26 @@
-import { useState, type FormEvent } from 'react'
+import type { FormEvent } from 'react'
 import { useStore } from '../../app/store'
 import { getExercise } from '../../content/catalog'
 import { ExerciseArt } from '../../components/ExerciseArt'
 import { Badge, Button, Card, Icon, TextInput } from '../../components/ui'
 import { Logo } from '../../components/AppShell'
 import { cloudEnabled } from '../../lib/supabase'
+import { useEmailOtp } from './useEmailOtp'
 
 const heroExercise = getExercise('nhay-day-tuong-tuong')
 
 export function AuthPage() {
-  const { startWithEmail, startDemo } = useStore()
-  const [email, setEmail] = useState('')
-  const [consent, setConsent] = useState(false)
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const { startDemo } = useStore()
+  const otp = useEmailOtp()
 
-  const submit = async (event: FormEvent) => {
+  const submitEmail = async (event: FormEvent) => {
     event.preventDefault()
-    const trimmed = email.trim()
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setError('Bố mẹ nhập giúp em một địa chỉ email hợp lệ nhé.')
-      return
-    }
-    if (!consent) {
-      setError('Bố mẹ cần xác nhận là cha mẹ hoặc người giám hộ của bé.')
-      return
-    }
-    setError('')
-    setBusy(true)
-    const result = await startWithEmail(trimmed)
-    setBusy(false)
-    if (!result.ok) {
-      setError(result.message)
-    }
+    await otp.send()
+  }
+
+  const submitCode = async (event: FormEvent) => {
+    event.preventDefault()
+    await otp.verify()
   }
 
   return (
@@ -96,81 +84,146 @@ export function AuthPage() {
             </p>
           )}
 
-          <form onSubmit={submit} noValidate>
-            <label className="mb-1.5 block text-sm font-bold text-ink" htmlFor="email">
-              Email của bố mẹ
-            </label>
-            <TextInput
-              id="email"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              placeholder="vidu@email.com"
-              value={email}
-              invalid={Boolean(error) && error.includes('email')}
-              onChange={(event) => {
-                setEmail(event.target.value)
-                if (error) setError('')
-              }}
-            />
-            <p className="mt-1.5 text-xs font-semibold text-muted">
-              Dùng để gắn hồ sơ với tài khoản của bố mẹ. Bản này chưa gửi email xác thực. Không
-              gửi quảng cáo.
-            </p>
-
-            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl bg-cream/70 p-3">
-              <input
-                type="checkbox"
-                checked={consent}
-                onChange={(event) => setConsent(event.target.checked)}
-                className="mt-0.5 h-5 w-5 shrink-0 accent-[#FF7A59]"
+          {otp.step === 'email' ? (
+            <form onSubmit={submitEmail} noValidate>
+              <label className="mb-1.5 block text-sm font-bold text-ink" htmlFor="email">
+                Email của bố mẹ
+              </label>
+              <TextInput
+                id="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="vidu@email.com"
+                value={otp.email}
+                invalid={Boolean(otp.error) && otp.error.includes('email')}
+                onChange={(event) => {
+                  otp.setEmail(event.target.value)
+                  if (otp.error) otp.setError('')
+                }}
               />
-              <span className="text-xs font-semibold leading-relaxed text-muted">
-                Tôi là cha mẹ hoặc người giám hộ của bé, đồng ý tạo hồ sơ và lưu dữ liệu vận động
-                trên máy chủ StrongKids. Chỉ lưu biệt danh, năm/tháng sinh, chiều cao, cân nặng —
-                không ảnh, không họ tên, không địa chỉ.
-              </span>
-            </label>
-
-            {error && (
-              <p className="mt-3 rounded-xl bg-peach px-3 py-2 text-xs font-bold text-coral-dark">
-                {error}
+              <p className="mt-1.5 text-xs font-semibold text-muted">
+                StrongKids gửi mã 6 số để xác thực email. Không gửi quảng cáo.
               </p>
-            )}
 
-            <Button
-              type="submit"
-              size="lg"
-              fullWidth
-              className="mt-4"
-              disabled={busy || !cloudEnabled}
+              <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl bg-cream/70 p-3">
+                <input
+                  type="checkbox"
+                  checked={otp.consent}
+                  onChange={(event) => otp.setConsent(event.target.checked)}
+                  className="mt-0.5 h-5 w-5 shrink-0 accent-[#FF7A59]"
+                />
+                <span className="text-xs font-semibold leading-relaxed text-muted">
+                  Tôi là cha mẹ hoặc người giám hộ của bé, đồng ý tạo hồ sơ và lưu dữ liệu vận động
+                  trên máy chủ StrongKids. Chỉ lưu biệt danh, năm/tháng sinh, chiều cao, cân nặng —
+                  không ảnh, không họ tên, không địa chỉ.
+                </span>
+              </label>
+
+              {otp.error && (
+                <p className="mt-3 rounded-xl bg-peach px-3 py-2 text-xs font-bold text-coral-dark">
+                  {otp.error}
+                </p>
+              )}
+
+              <Button
+                type="submit"
+                size="lg"
+                fullWidth
+                className="mt-4"
+                disabled={otp.busy || !cloudEnabled}
+              >
+                <Icon name="mail" className="h-4 w-4" />
+                {otp.busy ? 'Đang gửi mã…' : 'Gửi mã xác thực'}
+              </Button>
+
+              <p className="mt-2 text-center text-xs font-semibold leading-relaxed text-muted">
+                Mỗi lần đăng nhập, bố mẹ nhận mã 6 số qua email — không cần nhớ mật khẩu. Hồ sơ
+                theo tài khoản email nên dùng được trên nhiều thiết bị.
+              </p>
+            </form>
+          ) : (
+            <form onSubmit={submitCode} noValidate>
+              <h2 className="text-sm font-bold text-ink">Nhập mã xác thực</h2>
+              <p className="mt-0.5 text-xs font-semibold leading-relaxed text-muted">
+                Mã 6 số đã gửi tới{' '}
+                <span className="font-extrabold text-ink">{otp.email.trim()}</span>. Mã hết hạn
+                sau 10 phút.
+              </p>
+
+              <label className="mt-4 block" htmlFor="otp">
+                <span className="mb-1.5 block text-sm font-bold text-ink">Mã xác thực</span>
+                <TextInput
+                  id="otp"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  autoFocus
+                  value={otp.code}
+                  className="text-center text-xl font-bold tracking-[0.45em]"
+                  onChange={(event) => {
+                    otp.setCode(event.target.value.replace(/\D/g, '').slice(0, 6))
+                    if (otp.error) otp.setError('')
+                  }}
+                />
+              </label>
+
+              {otp.error && (
+                <p className="mt-3 rounded-xl bg-peach px-3 py-2 text-xs font-bold text-coral-dark">
+                  {otp.error}
+                </p>
+              )}
+
+              <Button
+                type="submit"
+                size="lg"
+                fullWidth
+                variant="teal"
+                className="mt-4"
+                disabled={otp.busy || !cloudEnabled}
+              >
+                <Icon name="check" className="h-4 w-4" />
+                {otp.busy ? 'Đang xác thực…' : 'Xác thực và tiếp tục'}
+              </Button>
+
+              <div className="mt-3 flex items-center justify-between text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={otp.editEmail}
+                  className="focus-ring rounded-lg px-1 py-1 text-muted hover:text-ink"
+                >
+                  Đổi email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void otp.resend()}
+                  disabled={otp.resendIn > 0 || otp.busy}
+                  className="focus-ring rounded-lg px-1 py-1 text-teal-dark disabled:text-muted"
+                >
+                  {otp.resendIn > 0 ? `Gửi lại sau ${otp.resendIn}s` : 'Gửi lại mã'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {otp.step === 'email' && (
+            <button
+              type="button"
+              onClick={startDemo}
+              className="focus-ring mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-bold text-teal-dark hover:bg-mint/60"
             >
-              <Icon name="sparkles" className="h-4 w-4" />
-              {busy ? 'Đang tạo hồ sơ…' : 'Bắt đầu với email này'}
-            </Button>
-
-            <p className="mt-2 text-center text-xs font-semibold leading-relaxed text-muted">
-              Chưa cần mật khẩu hay mã PIN. Hồ sơ gắn với trình duyệt này — nếu xoá dữ liệu trình
-              duyệt, bố mẹ sẽ mất liên kết tới hồ sơ trên máy chủ. Đăng nhập lại bằng email sẽ có
-              ở phiên bản sau.
-            </p>
-          </form>
-
-          <button
-            type="button"
-            onClick={startDemo}
-            className="focus-ring mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-bold text-teal-dark hover:bg-mint/60"
-          >
-            <Icon name="play" className="h-4 w-4" filled />
-            Xem bản demo với bé Miu
-          </button>
+              <Icon name="play" className="h-4 w-4" filled />
+              Xem bản demo với bé Miu
+            </button>
+          )}
         </Card>
 
         <div className="mt-5 flex items-start gap-2 px-2 text-xs font-semibold leading-relaxed text-muted">
           <Icon name="shield" className="mt-0.5 h-4 w-4 shrink-0 text-teal-dark" />
-          Hồ sơ được lưu trên máy chủ Supabase gắn với thiết bị này và một bản trên thiết bị để
-          dùng khi mất mạng. Không quảng cáo, không dùng analytics bên thứ ba. StrongKids khuyến
-          khích vận động vui khoẻ, không dùng calo hay cân nặng mục tiêu.
+          Hồ sơ được lưu trên máy chủ Supabase theo tài khoản email của bố mẹ và một bản trên
+          thiết bị để dùng khi mất mạng. Không quảng cáo, không dùng analytics bên thứ ba.
+          StrongKids khuyến khích vận động vui khoẻ, không dùng calo hay cân nặng mục tiêu.
         </div>
       </div>
     </div>

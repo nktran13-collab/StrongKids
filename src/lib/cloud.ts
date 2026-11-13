@@ -40,14 +40,19 @@ export async function deleteFamilyState(userId: string): Promise<void> {
   if (error) throw error
 }
 
-/**
- * Tạo phiên đăng nhập ẩn danh gắn với thiết bị/trình duyệt này.
- * Email phụ huynh được lưu trong hồ sơ (family_state) chứ chưa dùng để xác thực.
- * Phiên bản sau có thể nâng cấp phiên này thành tài khoản email bằng magic link.
- */
-export async function signInAnonymously(): Promise<Session> {
-  const { data, error } = await client().auth.signInAnonymously()
+/** Gửi mã đăng nhập 6 số tới email phụ huynh. */
+export async function sendLoginOtp(email: string): Promise<void> {
+  const { error } = await client().auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true },
+  })
   if (error) throw error
-  if (!data.session) throw new Error('Không tạo được phiên đăng nhập trên thiết bị')
+}
+
+/** Xác thực mã OTP và trả phiên đăng nhập đã xác thực email. */
+export async function verifyLoginOtp(email: string, token: string): Promise<Session> {
+  const { data, error } = await client().auth.verifyOtp({ email, token, type: 'email' })
+  if (error) throw error
+  if (!data.session) throw new Error('Không tạo được phiên đăng nhập')
   return data.session
 }

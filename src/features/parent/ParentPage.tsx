@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useStore, type CloudStatus } from '../../app/store'
+import { useEmailOtp } from '../auth/useEmailOtp'
 import { calculateAge, bandForChild, BAND_LABEL } from '../../lib/age'
 import { BMI_DISCLAIMER, calculateBmi, calculateExactBmi, formatBmi } from '../../lib/bmi'
 import { formatViDate, todayKey } from '../../lib/date'
@@ -77,6 +78,8 @@ function ParentDashboard() {
     exportData,
     resetAll,
     cloudStatus,
+    accountEmail,
+    accountVerified,
     setActiveChild,
     removeChild,
   } = useStore()
@@ -103,6 +106,7 @@ function ParentDashboard() {
   const [deleteError, setDeleteError] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [removeChildOpen, setRemoveChildOpen] = useState(false)
+  const [verifyOpen, setVerifyOpen] = useState(false)
 
   const measurements = activeMeasurements
 
@@ -408,8 +412,11 @@ function ParentDashboard() {
             khi mất mạng. Không có quảng cáo và không gửi dữ liệu trẻ cho bên thứ ba.
           </p>
           <p>
-            Tài khoản đang gắn với trình duyệt này (chưa dùng mật khẩu hay mã PIN). Xoá dữ liệu
-            trình duyệt sẽ làm mất liên kết tới hồ sơ trên máy chủ — hãy xuất dữ liệu trước.
+            {accountVerified
+              ? 'Email đã xác thực. Bố mẹ đăng nhập bằng mã gửi tới email này trên thiết bị khác. Khu phụ huynh chưa có mã PIN riêng.'
+              : accountEmail
+                ? 'Email chưa được xác thực; hồ sơ đang gắn với trình duyệt này. Xác thực email để giữ hồ sơ khi đổi thiết bị hoặc xoá dữ liệu trình duyệt.'
+                : 'Đây là bản demo. Tạo tài khoản bằng email để lưu hồ sơ lên máy chủ.'}
           </p>
           <p className={cx('flex items-start gap-2', sync.tone)}>
             <Icon name="cloud" className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -417,6 +424,12 @@ function ParentDashboard() {
           </p>
         </div>
         <div className="mt-3 grid gap-2">
+          {accountEmail && !accountVerified && (
+            <Button variant="teal" onClick={() => setVerifyOpen(true)}>
+              <Icon name="mail" className="h-4 w-4" />
+              Xác thực email
+            </Button>
+          )}
           <Button variant="secondary" onClick={exportJson}>
             <Icon name="download" className="h-4 w-4" />
             Xuất dữ liệu (JSON)
@@ -474,6 +487,12 @@ function ParentDashboard() {
           addMeasurement(height, weight, dateKey)
           setMeasureOpen(false)
         }}
+      />
+
+      <VerifyEmailModal
+        open={verifyOpen}
+        email={data.parent?.email ?? ''}
+        onClose={() => setVerifyOpen(false)}
       />
 
       <Modal
@@ -618,6 +637,126 @@ function GrowthChart({ points }: { points: Measurement[] }) {
         <span>{formatViDate(recent[recent.length - 1].dateKey, false)}</span>
       </div>
     </div>
+  )
+}
+
+function VerifyEmailModal({
+  open,
+  email,
+  onClose,
+}: {
+  open: boolean
+  email: string
+  onClose: () => void
+}) {
+  const otp = useEmailOtp({ initialEmail: email, initialConsent: true })
+
+  const submitEmail = async (event: FormEvent) => {
+    event.preventDefault()
+    await otp.send()
+  }
+
+  const submitCode = async (event: FormEvent) => {
+    event.preventDefault()
+    const ok = await otp.verify()
+    if (ok) onClose()
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Xác thực email phụ huynh">
+      {otp.step === 'email' ? (
+        <form onSubmit={submitEmail} noValidate>
+          <p className="text-sm font-semibold leading-relaxed text-muted">
+            StrongKids gửi mã 6 số tới email của bố mẹ. Sau khi xác thực, hồ sơ gắn với email này
+            và đăng nhập được trên thiết bị khác.
+          </p>
+
+          <div className="mt-3">
+            <Field label="Email nhận mã" hint="6 số">
+              <TextInput
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={otp.email}
+                onChange={(event) => {
+                  otp.setEmail(event.target.value)
+                  if (otp.error) otp.setError('')
+                }}
+              />
+            </Field>
+          </div>
+
+          {otp.error && (
+            <p className="mt-3 rounded-xl bg-peach px-3 py-2 text-xs font-bold text-coral-dark">
+              {otp.error}
+            </p>
+          )}
+
+          <Button type="submit" fullWidth className="mt-3" disabled={otp.busy}>
+            <Icon name="mail" className="h-4 w-4" />
+            {otp.busy ? 'Đang gửi mã…' : 'Gửi mã xác thực'}
+          </Button>
+
+          <p className="mt-3 text-xs font-semibold leading-relaxed text-muted">
+            Nếu email này đã có hồ sơ trên máy chủ, app sẽ dùng hồ sơ đó thay cho dữ liệu đang có
+            trên máy.
+          </p>
+        </form>
+      ) : (
+        <form onSubmit={submitCode} noValidate>
+          <p className="text-sm font-semibold leading-relaxed text-muted">
+            Mã 6 số đã gửi tới{' '}
+            <span className="font-extrabold text-ink">{otp.email.trim()}</span>.
+          </p>
+
+          <div className="mt-3">
+            <Field label="Mã xác thực">
+              <TextInput
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                autoFocus
+                value={otp.code}
+                className="text-center text-xl font-bold tracking-[0.45em]"
+                onChange={(event) => {
+                  otp.setCode(event.target.value.replace(/\D/g, '').slice(0, 6))
+                  if (otp.error) otp.setError('')
+                }}
+              />
+            </Field>
+          </div>
+
+          {otp.error && (
+            <p className="mt-3 rounded-xl bg-peach px-3 py-2 text-xs font-bold text-coral-dark">
+              {otp.error}
+            </p>
+          )}
+
+          <Button type="submit" fullWidth className="mt-3" disabled={otp.busy}>
+            <Icon name="check" className="h-4 w-4" />
+            {otp.busy ? 'Đang xác thực…' : 'Xác thực email'}
+          </Button>
+
+          <div className="mt-3 flex items-center justify-between text-xs font-bold">
+            <button
+              type="button"
+              onClick={otp.editEmail}
+              className="focus-ring rounded-lg px-1 py-1 text-muted hover:text-ink"
+            >
+              Đổi email
+            </button>
+            <button
+              type="button"
+              onClick={() => void otp.resend()}
+              disabled={otp.resendIn > 0 || otp.busy}
+              className="focus-ring rounded-lg px-1 py-1 text-teal-dark disabled:text-muted"
+            >
+              {otp.resendIn > 0 ? `Gửi lại sau ${otp.resendIn}s` : 'Gửi lại mã'}
+            </button>
+          </div>
+        </form>
+      )}
+    </Modal>
   )
 }
 
