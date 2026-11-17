@@ -10,7 +10,6 @@ import {
   recommendedDuration,
 } from '../../lib/age'
 import { Badge, Button, Card, Field, Icon, PageHeader, SegmentedControl, Select, TextInput, cx } from '../../components/ui'
-import { ChildAvatar } from '../../components/ChildAvatar'
 import { WEEKDAY_SHORT } from '../../lib/date'
 import type { Sex } from '../../lib/types'
 
@@ -149,7 +148,9 @@ export function OnboardingPage() {
           <div className="animate-slide-up space-y-4">
             <Card className="p-5">
               <div className="mb-5 flex items-center gap-4">
-                <ChildAvatar sex={sex} className="h-16 w-16" />
+                <div className="grid h-16 w-16 place-items-center rounded-[1.4rem] bg-sun-soft text-2xl font-black text-[#8A5C00]">
+                  {(nickname.trim().slice(0, 1) || '?').toUpperCase()}
+                </div>
                 <div>
                   <p className="text-sm font-bold text-ink">
                     {nickname.trim() || 'Biệt danh của bé'}
@@ -236,13 +237,12 @@ export function OnboardingPage() {
                     onClick={() => setSex(option.value)}
                     aria-pressed={sex === option.value}
                     className={cx(
-                      'focus-ring flex h-14 items-center justify-center gap-2 rounded-2xl border-2 text-sm font-bold transition',
+                      'focus-ring flex h-12 items-center justify-center rounded-2xl border-2 text-sm font-bold transition',
                       sex === option.value
                         ? 'border-coral bg-peach text-coral-dark'
                         : 'border-line bg-white text-muted hover:border-coral/30',
                     )}
                   >
-                    <ChildAvatar sex={option.value} className="h-9 w-9" />
                     {option.label}
                   </button>
                 ))}
