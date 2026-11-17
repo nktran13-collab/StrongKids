@@ -1,6 +1,12 @@
-import { poolFor } from '../content/catalog'
+import { paramsFor, poolFor } from '../content/catalog'
 import type { AgeBand, Block, Category, Exercise, Metric } from '../content/schema'
+import { workSecondsForAge } from './age'
 import { isoWeekday } from './date'
+
+const WARMUP_WORK_SEC = 45
+const WARMUP_REST_SEC = 10
+const COOLDOWN_WORK_SEC = 40
+const COOLDOWN_REST_SEC = 5
 
 export type Focus = 'energy' | 'strong' | 'play' | 'free'
 
@@ -116,10 +122,11 @@ function sampleExercises(
 function estimateMain(
   mains: Exercise[],
   band: AgeBand,
+  age: number | undefined,
   rounds: number,
 ): number {
   const perRound = mains.reduce((sum, exercise) => {
-    const params = exercise.ageParams[band]
+    const params = paramsFor(exercise, band, age)
     if (!params) return sum
     return sum + params.workSec + params.restSec
   }, 0)
@@ -133,25 +140,31 @@ export function stepTarget(exercise: Exercise, band: AgeBand): Metric {
 export interface BuildPlanOptions {
   childId: string
   band: AgeBand
+  /** Tuổi chính xác; nhóm 4–6 dùng tuổi để chọn thời lượng mỗi bài. */
+  age?: number
   durationMin: number
   dateKey: string
   recentSlugs?: string[]
 }
 
 export function buildSessionPlan(options: BuildPlanOptions): SessionPlan {
-  const { childId, band, durationMin, dateKey } = options
+  const { childId, band, age, durationMin, dateKey } = options
   const focus = focusForDate(dateKey)
   const recentSlugs = options.recentSlugs ?? []
   const targetSec = durationMin * 60
   const warmupCount = 3
   const cooldownCount = 3
+  const warmupWorkSec = workSecondsForAge(band, age, WARMUP_WORK_SEC)
+  const cooldownWorkSec = workSecondsForAge(band, age, COOLDOWN_WORK_SEC)
+  // Bé 4–6 tập mỗi bài ngắn hơn nên cần thêm vòng để buổi tập đủ thời lượng.
+  const roundOptions = band === '4-6' ? [2, 3, 4, 5] : [2, 3, 4]
 
   let best:
     | { mains: Exercise[]; rounds: number; warmups: Exercise[]; cooldowns: Exercise[]; diff: number }
     | null = null
 
   for (const mainCount of [4, 5, 6]) {
-    for (const rounds of [2, 3, 4]) {
+    for (const rounds of roundOptions) {
       const rng = mulberry32(
         hashString(`${childId}|${dateKey}|${mainCount}|${rounds}|${band}`),
       )
@@ -177,9 +190,9 @@ export function buildSessionPlan(options: BuildPlanOptions): SessionPlan {
         rng,
       )
       const estimate =
-        3 * (45 + 10) +
-        3 * (40 + 5) +
-        estimateMain(mains, band, rounds)
+        warmupCount * (warmupWorkSec + WARMUP_REST_SEC) +
+        cooldownCount * (cooldownWorkSec + COOLDOWN_REST_SEC) +
+        estimateMain(mains, band, age, rounds)
       const diff = Math.abs(estimate - targetSec)
       if (!best || diff < best.diff) {
         best = { mains, rounds, warmups, cooldowns, diff }
@@ -208,13 +221,13 @@ export function buildSessionPlan(options: BuildPlanOptions): SessionPlan {
   }
 
   best.warmups.forEach((exercise) => {
-    pushStep('work', exercise.slug, 'warmup', 1, 45)
-    pushStep('rest', exercise.slug, 'warmup', 1, 10)
+    pushStep('work', exercise.slug, 'warmup', 1, warmupWorkSec)
+    pushStep('rest', exercise.slug, 'warmup', 1, WARMUP_REST_SEC)
   })
 
   for (let round = 1; round <= best.rounds; round += 1) {
     best.mains.forEach((exercise) => {
-      const params = exercise.ageParams[band]
+      const params = paramsFor(exercise, band, age)
       if (!params) return
       pushStep('work', exercise.slug, 'main', round, params.workSec)
       pushStep('rest', exercise.slug, 'main', round, params.restSec)
@@ -225,8 +238,8 @@ export function buildSessionPlan(options: BuildPlanOptions): SessionPlan {
   }
 
   best.cooldowns.forEach((exercise) => {
-    pushStep('work', exercise.slug, 'cooldown', 1, 40)
-    pushStep('rest', exercise.slug, 'cooldown', 1, 5)
+    pushStep('work', exercise.slug, 'cooldown', 1, cooldownWorkSec)
+    pushStep('rest', exercise.slug, 'cooldown', 1, COOLDOWN_REST_SEC)
   })
 
   const estimatedSec = steps.reduce((sum, step) => sum + step.durationSec, 0)

@@ -39,7 +39,8 @@ export function HomePage() {
   const navigate = useNavigate()
   const child = activeChild!
   const today = todayKey()
-  const band = bandForAge(calculateAge(child.birthYear, child.birthMonth))
+  const age = calculateAge(child.birthYear, child.birthMonth)
+  const band = bandForAge(age)
   const weekday = isoWeekday(today)
   const isScheduled = activeSchedule.weekdays.includes(weekday)
 
@@ -111,6 +112,7 @@ export function HomePage() {
     const plan = buildSessionPlan({
       childId: child.id,
       band,
+      age,
       durationMin: activeSchedule.durationMin,
       dateKey: today,
       recentSlugs,
@@ -123,12 +125,13 @@ export function HomePage() {
     const plan = buildSessionPlan({
       childId: child.id,
       band,
+      age,
       durationMin: activeSchedule.durationMin,
       dateKey: today,
       recentSlugs: [],
     })
     return plan
-  }, [child.id, band, activeSchedule.durationMin, today])
+  }, [child.id, band, age, activeSchedule.durationMin, today])
 
   const firstMain = getExercise(todayPlanPreview.mainSlugs[0])
 

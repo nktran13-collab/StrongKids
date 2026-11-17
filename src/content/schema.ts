@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const AGE_BANDS = ['5-7', '8-9', '10-12'] as const
+export const AGE_BANDS = ['4-6', '7-9', '10-12'] as const
 export const CATEGORIES = [
   'cardio',
   'strength',
@@ -59,8 +59,9 @@ export const exerciseSchema = z.object({
     prop: z.enum(['none', 'rope', 'ball', 'towel', 'paper', 'cone']).default('none'),
   }),
   ageParams: z.object({
-    '5-7': ageParamSchema.optional(),
-    '8-9': ageParamSchema.optional(),
+    /** Thời lượng thực tế của nhóm 4–6 được tính theo tuổi khi tạo buổi tập. */
+    '4-6': ageParamSchema.optional(),
+    '7-9': ageParamSchema.optional(),
     '10-12': ageParamSchema.optional(),
   }),
 })

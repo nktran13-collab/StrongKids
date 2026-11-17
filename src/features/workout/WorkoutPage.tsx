@@ -110,7 +110,7 @@ export function WorkoutPage() {
 
   const plan: SessionPlan | undefined = session?.plan
   const steps = plan?.steps ?? []
-  const band: AgeBand = plan?.band ?? '8-9'
+  const band: AgeBand = plan?.band ?? '7-9'
 
   const [stage, setStage] = useState<'intro' | 'countdown' | 'step' | 'summary'>('intro')
   const [stepIndex, setStepIndex] = useState(0)

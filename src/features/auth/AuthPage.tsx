@@ -40,7 +40,7 @@ export function AuthPage() {
         <section className="mt-8 animate-pop">
           <Badge tone="sun" className="mb-3">
             <Icon name="sparkles" className="h-3.5 w-3.5" />
-            Dành cho bé 5–12 tuổi
+            Dành cho bé 4–12 tuổi
           </Badge>
           <h1 className="display-title text-[34px] leading-[1.08] text-ink">
             Vận động vui,

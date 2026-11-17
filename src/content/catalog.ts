@@ -1,6 +1,7 @@
 import { exerciseSchema } from './schema'
-import type { AgeBand, Block, Category, Exercise } from './schema'
+import type { AgeBand, AgeParams, Block, Category, Exercise } from './schema'
 import { exercises } from './exercises'
+import { workSecondsForAge } from '../lib/age'
 
 export const catalog: Exercise[] = exercises.map((exercise) => exerciseSchema.parse(exercise))
 
@@ -12,8 +13,11 @@ export function getExercise(slug: string): Exercise {
   return exercise
 }
 
-export function paramsFor(exercise: Exercise, band: AgeBand) {
-  return exercise.ageParams[band]
+export function paramsFor(exercise: Exercise, band: AgeBand, age?: number): AgeParams | undefined {
+  const params = exercise.ageParams[band]
+  if (!params) return undefined
+  const workSec = workSecondsForAge(band, age, params.workSec)
+  return workSec === params.workSec ? params : { ...params, workSec }
 }
 
 export function poolFor(
@@ -33,4 +37,4 @@ export function exercisesForBand(band: AgeBand): Exercise[] {
   return catalog.filter((exercise) => exercise.bands.includes(band))
 }
 
-export const CATALOG_VERSION = '2026.11.1'
+export const CATALOG_VERSION = '2026.11.2'

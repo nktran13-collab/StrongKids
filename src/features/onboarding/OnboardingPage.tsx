@@ -1,7 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../app/store'
-import { BAND_DESCRIPTION, BAND_LABEL, bandForAge, calculateAge, recommendedDuration } from '../../lib/age'
+import {
+  BAND_DESCRIPTION,
+  BAND_LABEL,
+  bandForAge,
+  calculateAge,
+  isAgeSupported,
+  recommendedDuration,
+} from '../../lib/age'
 import { Badge, Button, Card, Field, Icon, PageHeader, SegmentedControl, Select, TextInput, cx } from '../../components/ui'
 import { WEEKDAY_SHORT } from '../../lib/date'
 import type { Sex } from '../../lib/types'
@@ -46,8 +53,8 @@ export function OnboardingPage() {
         setError('Bố mẹ đặt cho bé một biệt danh thật dễ thương nhé.')
         return
       }
-      if (age < 4 || age > 13) {
-        setError('StrongKids hiện dành cho bé 5–12 tuổi. Bố mẹ kiểm tra lại năm sinh giúp em nhé.')
+      if (!isAgeSupported(age)) {
+        setError('StrongKids hiện dành cho bé 4–12 tuổi. Bố mẹ kiểm tra lại năm sinh giúp em nhé.')
         return
       }
       setStep(1)
@@ -276,8 +283,8 @@ export function OnboardingPage() {
                 Gợi ý cho nhóm {BAND_LABEL[band]}
               </div>
               <p className="mt-1 text-xs font-semibold leading-relaxed text-[#7A5200]">
-                Buổi tập {recommended} phút là vừa sức. Bé 5–12 tuổi cần khoảng 60 phút vận động
-                mỗi ngày, có thể chia thành nhiều lần chơi trong ngày.
+                Buổi tập {recommended} phút là vừa sức. Bé 4–6 tuổi nên vận động ít nhất 3 giờ
+                mỗi ngày, gồm nhiều lần chơi; bé từ 7 tuổi cần khoảng 60 phút vận động mỗi ngày.
               </p>
             </div>
           </div>

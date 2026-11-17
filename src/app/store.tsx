@@ -339,7 +339,7 @@ function makeDemoData(): AppData {
   const now = new Date()
   const today = todayKey(now)
   const childId = uid()
-  const band = '8-9'
+  const band = '7-9'
   const schedule: Schedule = { weekdays: [1, 3, 5], durationMin: 25 }
   const child: Child = {
     id: childId,
@@ -369,6 +369,7 @@ function makeDemoData(): AppData {
     const plan = buildSessionPlan({
       childId,
       band,
+      age: 8,
       durationMin: schedule.durationMin,
       dateKey,
     })
