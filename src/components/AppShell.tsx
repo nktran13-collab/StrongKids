@@ -3,6 +3,7 @@ import { useStore } from '../app/store'
 import { computeStreak } from '../lib/streak'
 import { todayKey } from '../lib/date'
 import { useOnline } from '../lib/useOnline'
+import { ChildAvatar } from './ChildAvatar'
 import { Icon, cx } from './ui'
 
 const NAV = [
@@ -64,10 +65,10 @@ export function AppShell() {
             </NavLink>
             <NavLink
               to="/phu-huynh"
-              className="focus-ring grid h-11 w-11 place-items-center rounded-full bg-ink text-sm font-black text-white shadow-sm"
+              className="focus-ring rounded-full shadow-sm"
               aria-label="Khu phụ huynh"
             >
-              {child?.nickname.slice(0, 1).toUpperCase() ?? 'S'}
+              <ChildAvatar sex={child?.sex ?? null} className="h-11 w-11" />
             </NavLink>
           </div>
         </header>
@@ -93,14 +94,7 @@ export function AppShell() {
                       : 'bg-white text-muted shadow-sm hover:text-ink',
                   )}
                 >
-                  <span
-                    className={cx(
-                      'grid h-7 w-7 place-items-center rounded-full text-xs font-black',
-                      active ? 'bg-white/20 text-white' : 'bg-sun-soft text-[#8A5C00]',
-                    )}
-                  >
-                    {item.nickname.slice(0, 1).toUpperCase()}
-                  </span>
+                  <ChildAvatar sex={item.sex} className="h-7 w-7" />
                   {item.nickname}
                 </button>
               )

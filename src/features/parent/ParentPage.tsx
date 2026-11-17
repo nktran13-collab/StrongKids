@@ -28,6 +28,7 @@ import {
   cx,
 } from '../../components/ui'
 import { TurnstileWidget } from '../../components/TurnstileWidget'
+import { ChildAvatar } from '../../components/ChildAvatar'
 import { ParentPinGate } from './ParentPinGate'
 
 function syncCopy(status: CloudStatus): { text: string; tone: string } {
@@ -183,14 +184,7 @@ function ParentDashboard() {
                   aria-pressed={active}
                   className="focus-ring flex min-w-0 flex-1 items-center gap-2.5 rounded-xl text-left"
                 >
-                  <span
-                    className={cx(
-                      'grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-black',
-                      active ? 'bg-teal-dark text-white' : 'bg-sun-soft text-[#8A5C00]',
-                    )}
-                  >
-                    {item.nickname.slice(0, 1).toUpperCase()}
-                  </span>
+                  <ChildAvatar sex={item.sex} className="h-10 w-10" />
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-extrabold text-ink">
                       {item.nickname}
@@ -220,9 +214,7 @@ function ParentDashboard() {
 
       <Card className="p-5">
         <div className="flex items-center gap-3">
-          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-ink text-xl font-black text-white">
-            {child.nickname.slice(0, 1).toUpperCase()}
-          </span>
+          <ChildAvatar sex={child.sex} className="h-14 w-14" />
           <div className="min-w-0 flex-1">
             <h2 className="display-title truncate text-xl text-ink">{child.nickname}</h2>
             <p className="text-xs font-semibold text-muted">
