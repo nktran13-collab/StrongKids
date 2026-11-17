@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Category, Exercise, Pose } from '../content/schema'
+import type { Sex } from '../lib/types'
 
 interface Geometry {
   head: [number, number]
@@ -139,17 +140,20 @@ const SHOE = '#243B53'
 
 interface Props {
   exercise: Exercise
+  /** Bé gái dùng bộ ảnh minh hoạ nhân vật bé gái. */
+  sex?: Sex | null
   className?: string
   decoration?: boolean
   /** Ảnh lớn ở màn hình đầu: tải ngay để không chậm LCP. */
   priority?: boolean
 }
 
-function ArtFallback({ exercise, className, decoration = true }: Props) {
+function ArtFallback({ exercise, sex, className, decoration = true }: Props) {
   const geometry = POSES[exercise.art.pose]
   const tint = TINTS[exercise.category]
   const { head, neck, hip, armL, armR, legL, legR } = geometry
   const [hx, hy] = head
+  const girl = sex === 'female'
 
   return (
     <svg
@@ -209,19 +213,47 @@ function ArtFallback({ exercise, className, decoration = true }: Props) {
       <circle cx={armR[2]} cy={armR[3]} r="5.5" fill={SKIN} />
 
       {/* đầu */}
+      {girl && (
+        <g fill={HAIR}>
+          <circle cx={hx} cy={hy - 1} r="24" />
+          <circle cx={hx - 24} cy={hy + 8} r="6.5" />
+          <circle cx={hx + 24} cy={hy + 8} r="6.5" />
+        </g>
+      )}
+      {girl && (
+        <g fill="#FF7A59">
+          <circle cx={hx - 19.5} cy={hy + 4} r="2.6" />
+          <circle cx={hx + 19.5} cy={hy + 4} r="2.6" />
+        </g>
+      )}
       <circle cx={hx} cy={hy} r="23" fill={SKIN} />
       <circle cx={hx} cy={hy + 2} r="23" fill="none" stroke={SKIN_SHADE} strokeWidth="1.5" opacity="0.35" />
-      <path
-        d={`M ${hx - 23} ${hy - 2} A 23 23 0 0 1 ${hx + 23} ${hy - 2} Q ${hx + 10} ${hy - 16} ${hx - 4} ${hy - 13} Q ${hx - 16} ${hy - 11} ${hx - 23} ${hy - 2} Z`}
-        fill={HAIR}
-      />
-      <path
-        d={`M ${hx - 18} ${hy - 12} Q ${hx - 8} ${hy - 26} ${hx + 8} ${hy - 20}`}
-        stroke={HAIR}
-        strokeWidth="5"
-        strokeLinecap="round"
-        fill="none"
-      />
+      {girl ? (
+        <path
+          d={`M ${hx - 23} ${hy - 2} A 23 23 0 0 1 ${hx + 23} ${hy - 2} Q ${hx + 12} ${hy - 17} ${hx + 3} ${hy - 14} Q ${hx - 3} ${hy - 19} ${hx - 9} ${hy - 14} Q ${hx - 18} ${hy - 12} ${hx - 23} ${hy - 2} Z`}
+          fill={HAIR}
+        />
+      ) : (
+        <path
+          d={`M ${hx - 23} ${hy - 2} A 23 23 0 0 1 ${hx + 23} ${hy - 2} Q ${hx + 10} ${hy - 16} ${hx - 4} ${hy - 13} Q ${hx - 16} ${hy - 11} ${hx - 23} ${hy - 2} Z`}
+          fill={HAIR}
+        />
+      )}
+      {girl ? (
+        <g>
+          <path d={`M ${hx + 15} ${hy - 20} l -7 -4.5 l 1 8 Z`} fill="#FF7A59" />
+          <path d={`M ${hx + 15} ${hy - 20} l 7 -4.5 l -1 8 Z`} fill="#FF7A59" />
+          <circle cx={hx + 15} cy={hy - 20} r="2.6" fill="#E85B3A" />
+        </g>
+      ) : (
+        <path
+          d={`M ${hx - 18} ${hy - 12} Q ${hx - 8} ${hy - 26} ${hx + 8} ${hy - 20}`}
+          stroke={HAIR}
+          strokeWidth="5"
+          strokeLinecap="round"
+          fill="none"
+        />
+      )}
       <circle cx={hx - 7} cy={hy + 3} r="2.4" fill={SHOE} />
       <circle cx={hx + 7} cy={hy + 3} r="2.4" fill={SHOE} />
       <circle cx={hx - 12} cy={hy + 9} r="4" fill="#FF9E9E" opacity="0.45" />
@@ -282,17 +314,18 @@ function ArtFallback({ exercise, className, decoration = true }: Props) {
   )
 }
 
-export function ExerciseArt({ exercise, className, decoration = true, priority = false }: Props) {
-  const [failedSlug, setFailedSlug] = useState<string | null>(null)
+export function ExerciseArt({ exercise, sex, className, decoration = true, priority = false }: Props) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
   const alt = `Minh hoạ ${exercise.nameVi}`
+  const src = `${import.meta.env.BASE_URL}art/${exercise.slug}${sex === 'female' ? '-girl' : ''}.webp`
 
-  if (failedSlug === exercise.slug) {
-    return <ArtFallback exercise={exercise} className={className} decoration={decoration} />
+  if (failedSrc === src) {
+    return <ArtFallback exercise={exercise} sex={sex} className={className} decoration={decoration} />
   }
 
   return (
     <img
-      src={`${import.meta.env.BASE_URL}art/${exercise.slug}.webp`}
+      src={src}
       alt={alt}
       width={1024}
       height={576}
@@ -301,7 +334,7 @@ export function ExerciseArt({ exercise, className, decoration = true, priority =
       fetchPriority={priority ? 'high' : 'auto'}
       decoding="async"
       draggable={false}
-      onError={() => setFailedSlug(exercise.slug)}
+      onError={() => setFailedSrc(src)}
     />
   )
 }

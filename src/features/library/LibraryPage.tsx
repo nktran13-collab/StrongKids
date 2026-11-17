@@ -10,6 +10,7 @@ import {
   type Exercise,
 } from '../../content/schema'
 import { bandForAge, calculateAge, BAND_LABEL } from '../../lib/age'
+import type { Sex } from '../../lib/types'
 import { ExerciseArt } from '../../components/ExerciseArt'
 import { Badge, Button, Card, Icon, Modal, PageHeader, cx } from '../../components/ui'
 import { formatRecordValue } from '../home/HomePage'
@@ -108,6 +109,7 @@ function LibraryView() {
                 <Card className="h-full overflow-hidden p-3 transition group-hover:-translate-y-0.5 group-hover:shadow-lg">
                   <ExerciseArt
                     exercise={exercise}
+                    sex={child.sex}
                     className="mb-2 h-28 w-full rounded-2xl"
                     decoration={false}
                   />
@@ -148,6 +150,7 @@ function LibraryView() {
       <ExerciseDetail
         exercise={selected}
         band={childBand}
+        sex={child.sex}
         onClose={() => setSelected(null)}
         record={selected ? activeBests[`${selected.slug}:${selected.metric}`] : undefined}
       />
@@ -158,11 +161,13 @@ function LibraryView() {
 function ExerciseDetail({
   exercise,
   band,
+  sex,
   onClose,
   record,
 }: {
   exercise: Exercise | null
   band: AgeBand
+  sex: Sex | null
   onClose: () => void
   record?: { value: number; metric: Exercise['metric'] } | undefined
 }) {
@@ -180,7 +185,7 @@ function ExerciseDetail({
         </Button>
       }
     >
-      <ExerciseArt exercise={exercise} className="h-44 w-full rounded-3xl" />
+      <ExerciseArt exercise={exercise} sex={sex} className="h-44 w-full rounded-3xl" />
 
       <div className="mt-4 flex flex-wrap gap-1.5">
         <Badge tone="coral">{CATEGORY_LABEL[exercise.category]}</Badge>

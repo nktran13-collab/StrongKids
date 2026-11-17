@@ -204,6 +204,7 @@ export function HomePage() {
           <div className="flex gap-4 p-4">
             <ExerciseArt
               exercise={firstMain}
+              sex={child.sex}
               priority
               className="h-[104px] w-[124px] shrink-0 rounded-[1.3rem]"
               decoration={false}
@@ -288,7 +289,7 @@ export function HomePage() {
                   to="/bai-tap"
                   className="focus-ring flex items-center gap-3 rounded-3xl bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
-                  <ExerciseArt exercise={exercise} className="h-12 w-14 shrink-0 rounded-xl" decoration={false} />
+                  <ExerciseArt exercise={exercise} sex={child.sex} className="h-12 w-14 shrink-0 rounded-xl" decoration={false} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-extrabold text-ink">{exercise.nameVi}</p>
                     <p className="text-xs font-semibold text-muted">

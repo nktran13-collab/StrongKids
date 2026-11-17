@@ -6,6 +6,7 @@ import { CATEGORY_LABEL, type AgeBand, type Exercise, type Metric } from '../../
 import { celebrate } from '../../lib/confetti'
 import { useOnline } from '../../lib/useOnline'
 import type { PlanStep, SessionPlan } from '../../lib/generator'
+import type { Sex } from '../../lib/types'
 import { ExerciseArt } from '../../components/ExerciseArt'
 import {
   Badge,
@@ -107,6 +108,8 @@ export function WorkoutPage() {
   const online = useOnline()
   const { data, recordResult, completeSession, abandonSession } = useStore()
   const session = data.sessions.find((item) => item.id === id)
+  const sessionChild = data.children.find((item) => item.id === session?.childId)
+  const artSex: Sex | null = sessionChild?.sex ?? null
 
   const plan: SessionPlan | undefined = session?.plan
   const steps = plan?.steps ?? []
@@ -409,6 +412,7 @@ export function WorkoutPage() {
           <IntroScreen
             plan={plan}
             exercise={exercise}
+            sex={artSex}
             onStart={handleStart}
             onExit={() => setExitOpen(true)}
           />
@@ -417,6 +421,7 @@ export function WorkoutPage() {
         {stage === 'countdown' && exercise && (
           <CountdownScreen
             exercise={exercise}
+            sex={artSex}
             onDone={() => setStage('step')}
             onTired={() => setTired(true)}
           />
@@ -428,6 +433,7 @@ export function WorkoutPage() {
               key={step.key}
               step={step}
               exercise={exercise}
+              sex={artSex}
               band={band}
               next={nextWork ? getExercise(nextWork.slug) : null}
               paused={paused || tiredRest}
@@ -544,11 +550,13 @@ export function WorkoutPage() {
 function IntroScreen({
   plan,
   exercise,
+  sex,
   onStart,
   onExit,
 }: {
   plan: SessionPlan
   exercise: Exercise
+  sex: Sex | null
   onStart: () => void
   onExit: () => void
 }) {
@@ -559,7 +567,7 @@ function IntroScreen({
   return (
     <div className="flex flex-1 flex-col">
       <div className="animate-pop overflow-hidden rounded-[2rem] bg-white shadow-[0_18px_40px_-24px_rgba(36,59,83,0.4)]">
-        <ExerciseArt exercise={exercise} priority className="h-48 w-full" />
+        <ExerciseArt exercise={exercise} sex={sex} priority className="h-48 w-full" />
         <div className="p-5">
           <div className="flex flex-wrap gap-1.5">
             <Badge tone="coral">{plan.title}</Badge>
@@ -642,10 +650,12 @@ function PlanRow({
 
 function CountdownScreen({
   exercise,
+  sex,
   onDone,
   onTired,
 }: {
   exercise: Exercise
+  sex: Sex | null
   onDone: () => void
   onTired: () => void
 }) {
@@ -664,7 +674,7 @@ function CountdownScreen({
   return (
     <div className="flex flex-1 flex-col items-center justify-center text-center">
       <div className="animate-float w-full max-w-[280px]">
-        <ExerciseArt exercise={exercise} priority className="mx-auto h-40 w-full rounded-[2rem]" />
+        <ExerciseArt exercise={exercise} sex={sex} priority className="mx-auto h-40 w-full rounded-[2rem]" />
       </div>
       <p className="mt-5 text-xs font-extrabold uppercase tracking-[0.2em] text-muted">
         {count > 0 ? 'Chuẩn bị nhé' : 'Bắt đầu!'}
@@ -693,6 +703,7 @@ function CountdownScreen({
 function StepScreen({
   step,
   exercise,
+  sex,
   band,
   next,
   paused,
@@ -701,6 +712,7 @@ function StepScreen({
 }: {
   step: PlanStep
   exercise: Exercise
+  sex: Sex | null
   band: AgeBand
   next: Exercise | null
   paused: boolean
@@ -732,7 +744,7 @@ function StepScreen({
         </Badge>
         {next && (
           <div className="mt-4 flex items-center gap-3 rounded-3xl bg-white p-3 shadow-sm">
-            <ExerciseArt exercise={next} className="h-14 w-16 shrink-0 rounded-xl" decoration={false} />
+            <ExerciseArt exercise={next} sex={sex} className="h-14 w-16 shrink-0 rounded-xl" decoration={false} />
             <div className="text-left">
               <p className="text-xs font-extrabold uppercase tracking-wide text-muted">
                 Sắp tới
@@ -783,7 +795,7 @@ function StepScreen({
     <div className="flex flex-1 flex-col">
       <div className="animate-pop overflow-hidden rounded-[2rem] bg-white shadow-[0_18px_40px_-24px_rgba(36,59,83,0.4)]">
         <div className="relative">
-          <ExerciseArt exercise={exercise} priority className="h-40 w-full sm:h-44" />
+          <ExerciseArt exercise={exercise} sex={sex} priority className="h-40 w-full sm:h-44" />
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
             <Badge tone={isMain ? 'coral' : 'sun'}>{blockLabel}</Badge>
             {isMain && (
