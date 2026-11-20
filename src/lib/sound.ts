@@ -148,12 +148,35 @@ export function playCue(name: CueName, delayMs = 0) {
   else run()
 }
 
-export function pickVietnameseVoice<T extends { lang?: string }>(voices: T[]): T | null {
-  return (
-    voices.find((voice) => voice.lang?.toLowerCase() === 'vi-vn') ??
-    voices.find((voice) => voice.lang?.toLowerCase().startsWith('vi')) ??
-    null
-  )
+// Tên voice gợi ý giọng nữ/nam của từng hệ điều hành (iOS "Linh", Windows
+// "HoaiMy"/"NamMinh", Google "Tiếng Việt"). Web Speech API không cho chọn
+// vùng miền, nên chỉ ưu tiên giọng nữ tiếng Việt có sẵn trên máy.
+const FEMALE_VOICE_HINTS = ['linh', 'hoai my', 'hoaimy', 'ngoc', 'mai', 'thao', 'lan', 'female', 'nữ']
+const MALE_VOICE_HINTS = ['nam minh', 'namminh', 'minh nam', 'male']
+
+function voiceScore(voice: { name?: string; lang?: string }): number {
+  const name = (voice.name ?? '').toLowerCase()
+  const lang = (voice.lang ?? '').toLowerCase()
+  if (!lang.startsWith('vi')) return -100
+  let score = lang === 'vi-vn' ? 4 : 3
+  if (FEMALE_VOICE_HINTS.some((hint) => name.includes(hint))) score += 4
+  if (MALE_VOICE_HINTS.some((hint) => name.includes(hint))) score -= 4
+  return score
+}
+
+export function pickVietnameseVoice<T extends { name?: string; lang?: string }>(
+  voices: T[],
+): T | null {
+  let best: T | null = null
+  let bestScore = -Infinity
+  for (const voice of voices) {
+    const score = voiceScore(voice)
+    if (score > bestScore) {
+      best = voice
+      bestScore = score
+    }
+  }
+  return bestScore >= 3 ? best : null
 }
 
 function resolveVoice(): SpeechSynthesisVoice | null {
@@ -181,8 +204,8 @@ export function speak(text: string, options: { delayMs?: number } = {}) {
       if (synth.speaking || synth.pending) synth.cancel()
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = 'vi-VN'
-      utterance.rate = 0.92
-      utterance.pitch = 1.02
+      utterance.rate = 0.9
+      utterance.pitch = 1.05
       utterance.volume = 1
       const voice = resolveVoice()
       if (voice) utterance.voice = voice

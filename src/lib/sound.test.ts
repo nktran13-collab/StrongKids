@@ -27,6 +27,22 @@ describe('pickVietnameseVoice', () => {
     expect(pickVietnameseVoice([{ name: 'Vi', lang: 'vi' }])?.name).toBe('Vi')
   })
 
+  it('ưu tiên giọng nữ khi máy có cả giọng nam và nữ', () => {
+    const voices = [
+      { name: 'Microsoft NamMinh', lang: 'vi-VN' },
+      { name: 'Microsoft HoaiMy', lang: 'vi-VN' },
+    ]
+    expect(pickVietnameseVoice(voices)?.name).toBe('Microsoft HoaiMy')
+  })
+
+  it('ưu tiên giọng nữ có tên riêng hơn giọng mặc định', () => {
+    const voices = [
+      { name: 'Tiếng Việt (Việt Nam)', lang: 'vi-VN' },
+      { name: 'Linh', lang: 'vi-VN' },
+    ]
+    expect(pickVietnameseVoice(voices)?.name).toBe('Linh')
+  })
+
   it('trả null khi máy không có giọng tiếng Việt', () => {
     expect(pickVietnameseVoice([{ name: 'English', lang: 'en-US' }])).toBeNull()
   })

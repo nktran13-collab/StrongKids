@@ -612,17 +612,21 @@ function SoundSettingCard() {
           aria-checked={enabled}
           aria-label="Âm thanh khi tập"
           onClick={() => setSoundEnabled(!enabled)}
-          className={cx(
-            'focus-ring relative h-8 w-14 shrink-0 rounded-full transition-colors',
-            enabled ? 'bg-teal-dark' : 'bg-ink/15',
-          )}
+          className="focus-ring relative flex h-11 w-14 shrink-0 items-center"
         >
           <span
             className={cx(
-              'absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform',
-              enabled ? 'translate-x-7' : 'translate-x-1',
+              'relative block h-8 w-14 rounded-full transition-colors',
+              enabled ? 'bg-teal-dark' : 'bg-ink/15',
             )}
-          />
+          >
+            <span
+              className={cx(
+                'absolute left-1 top-1 h-6 w-6 rounded-full bg-white shadow transition-transform',
+                enabled ? 'translate-x-6' : 'translate-x-0',
+              )}
+            />
+          </span>
         </button>
       </div>
       <p className="mt-2 text-[11px] font-semibold leading-relaxed text-muted">
