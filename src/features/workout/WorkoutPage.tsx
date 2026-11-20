@@ -4,6 +4,14 @@ import { useStore } from '../../app/store'
 import { getExercise } from '../../content/catalog'
 import { CATEGORY_LABEL, type AgeBand, type Exercise, type Metric } from '../../content/schema'
 import { celebrate } from '../../lib/confetti'
+import {
+  playCue,
+  setSoundEnabled,
+  speak,
+  stopVoice,
+  unlockAudio,
+  useSoundEnabled,
+} from '../../lib/sound'
 import { useOnline } from '../../lib/useOnline'
 import type { PlanStep, SessionPlan } from '../../lib/generator'
 import type { Sex } from '../../lib/types'
@@ -106,6 +114,7 @@ export function WorkoutPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const online = useOnline()
+  const soundOn = useSoundEnabled()
   const { data, recordResult, completeSession, abandonSession } = useStore()
   const session = data.sessions.find((item) => item.id === id)
   const sessionChild = data.children.find((item) => item.id === session?.childId)
@@ -153,6 +162,12 @@ export function WorkoutPage() {
   }, [toast])
 
   useEffect(() => {
+    if (paused || tiredRest || tired) stopVoice()
+  }, [paused, tiredRest, tired])
+
+  useEffect(() => () => stopVoice(), [])
+
+  useEffect(() => {
     if (stage !== 'step') return
     const nav = navigator as Navigator & {
       wakeLock?: { request: (type: 'screen') => Promise<{ release: () => Promise<void> }> }
@@ -181,6 +196,13 @@ export function WorkoutPage() {
     setTired(false)
     setTiredRest(false)
     setStage('summary')
+    playCue('sessionDone')
+    speak(
+      early
+        ? 'Mình nghỉ sớm một chút. Ngày mai mình chơi tiếp nhé!'
+        : 'Hoàn thành buổi tập. Giỏi quá, bé ơi!',
+      { delayMs: 900 },
+    )
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -197,6 +219,7 @@ export function WorkoutPage() {
   const handleStepFinish = (value?: number) => {
     const current = stepsRef.current[indexRef.current]
     if (!current) return
+    playCue(current.kind === 'work' ? 'workEnd' : 'restEnd')
     if (
       session &&
       value !== undefined &&
@@ -228,6 +251,8 @@ export function WorkoutPage() {
       if (result.isNewBest) {
         celebrate(1.15)
         vibrate([30, 60, 30])
+        playCue('newBest', 350)
+        speak('Kỷ lục mới!', { delayMs: 400 })
         setToast({
           title: 'Kỷ lục mới!',
           detail: `${exercise.nameVi}: ${formatValue(exercise.metric, value)}${
@@ -252,6 +277,8 @@ export function WorkoutPage() {
     indexRef.current = 0
     setStepIndex(0)
     setStage('countdown')
+    unlockAudio()
+    speak('Chuẩn bị nhé!')
     vibrate(20)
   }
 
@@ -386,6 +413,18 @@ export function WorkoutPage() {
           </div>
           <button
             type="button"
+            onClick={() => {
+              setSoundEnabled(!soundOn)
+              if (!soundOn) unlockAudio()
+            }}
+            className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-ink shadow-sm"
+            aria-pressed={soundOn}
+            aria-label={soundOn ? 'Tắt âm thanh và giọng đọc' : 'Bật âm thanh và giọng đọc'}
+          >
+            <Icon name={soundOn ? 'speaker' : 'speaker-off'} />
+          </button>
+          <button
+            type="button"
             onClick={() => setPaused((value) => !value)}
             disabled={stage !== 'step'}
             className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-ink shadow-sm disabled:opacity-40"
@@ -514,6 +553,7 @@ export function WorkoutPage() {
             onClick={() => {
               setTired(false)
               setTiredRest(true)
+              speak('Nghỉ thêm 30 giây nhé.', { delayMs: 300 })
             }}
           >
             <Icon name="heart" className="h-4 w-4" />
@@ -698,9 +738,11 @@ function CountdownScreen({
   useEffect(() => {
     vibrate(25)
     if (count <= 0) {
+      playCue('go')
       const timer = window.setTimeout(onDone, 600)
       return () => window.clearTimeout(timer)
     }
+    playCue('tick')
     const timer = window.setTimeout(() => setCount((value) => value - 1), 800)
     return () => window.clearTimeout(timer)
   }, [count, onDone])
@@ -765,6 +807,31 @@ function StepScreen({
   const left = useSteadyCountdown(step.durationSec, !manual && !paused, () => {
     onFinish(isWork && isMain ? step.durationSec : undefined)
   })
+
+  // StepScreen được mount lại theo key của bước nên mỗi bước chỉ đọc hướng dẫn một lần.
+  useEffect(() => {
+    if (!isWork) {
+      speak(
+        step.block === 'cooldown'
+          ? 'Thư giãn, thở chậm nào.'
+          : `Nghỉ ${step.durationSec} giây. Thở đều nhé.`,
+        { delayMs: 400 },
+      )
+      return
+    }
+    speak(isMain && step.round > 1 ? `Vòng ${step.round}. ${exercise.nameVi}` : exercise.nameVi, {
+      delayMs: 400,
+    })
+  }, [])
+
+  const lastTickRef = useRef(0)
+  useEffect(() => {
+    if (manual || paused) return
+    const whole = Math.ceil(left)
+    if (whole > 3 || whole <= 0 || lastTickRef.current === whole) return
+    lastTickRef.current = whole
+    playCue('tick')
+  }, [left, manual, paused])
 
   const blockLabel =
     step.block === 'warmup' ? 'Khởi động' : step.block === 'cooldown' ? 'Thư giãn' : 'Mạch chính'

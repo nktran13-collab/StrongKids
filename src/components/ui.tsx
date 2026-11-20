@@ -44,6 +44,8 @@ type IconName =
   | 'stop'
   | 'ruler'
   | 'scale'
+  | 'speaker'
+  | 'speaker-off'
 
 const ICON_PATHS: Record<IconName, ReactNode> = {
   home: <path d="M3 10.5 12 3l9 7.5M5 9.5V21h5v-6h4v6h5V9.5" />,
@@ -127,6 +129,18 @@ const ICON_PATHS: Record<IconName, ReactNode> = {
   stop: <rect x="7" y="7" width="10" height="10" rx="2" />,
   ruler: <path d="M4 16 16 4l4 4L8 20zM11 7l2 2M8 10l2 2M14 6l2 2" />,
   scale: <path d="M12 4v16M7 20h10M5 8h14M8 8l-3 6h6zM16 8l-3 6h6z" />,
+  speaker: (
+    <>
+      <path d="M4 10v4h3l5 4V6L7 10H4z" />
+      <path d="M16 9.5a4 4 0 0 1 0 5M18.5 6.5a8 8 0 0 1 0 11" />
+    </>
+  ),
+  'speaker-off': (
+    <>
+      <path d="M4 10v4h3l5 4V6L7 10H4z" />
+      <path d="M16.5 10.5 21 15M21 10.5 16.5 15" />
+    </>
+  ),
 }
 
 export function Icon({

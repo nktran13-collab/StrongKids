@@ -7,6 +7,7 @@ import { BMI_DISCLAIMER, calculateBmi, calculateExactBmi, formatBmi } from '../.
 import { formatViDate, todayKey } from '../../lib/date'
 import { computeStreak } from '../../lib/streak'
 import { useInstallPrompt } from '../../lib/useInstallPrompt'
+import { setSoundEnabled, useSoundEnabled } from '../../lib/sound'
 import {
   ageInMonthsNow,
   bmiForAge,
@@ -401,6 +402,8 @@ function ParentDashboard() {
         )}
       </Card>
 
+      <SoundSettingCard />
+
       <Card className="mt-3 p-4">
         <h2 className="text-sm font-extrabold text-ink">Dữ liệu & quyền riêng tư</h2>
         <div className="mt-2 space-y-1.5 text-xs font-semibold leading-relaxed text-muted">
@@ -580,6 +583,53 @@ function StatCard({
       </div>
       <p className="mt-1 text-xs font-extrabold uppercase tracking-wide opacity-80">{label}</p>
     </div>
+  )
+}
+
+function SoundSettingCard() {
+  const enabled = useSoundEnabled()
+  return (
+    <Card className="mt-3 p-4">
+      <div className="flex items-center gap-3">
+        <span
+          className={cx(
+            'grid h-9 w-9 shrink-0 place-items-center rounded-full',
+            enabled ? 'bg-mint text-teal-dark' : 'bg-ink/5 text-muted',
+          )}
+        >
+          <Icon name={enabled ? 'speaker' : 'speaker-off'} className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-extrabold text-ink">Âm thanh khi tập</h2>
+          <p className="mt-0.5 text-xs font-semibold leading-relaxed text-muted">
+            Giọng đọc tiếng Việt nhắc từng bài cùng chuông báo hết giờ. Bé có thể tạm tắt ngay
+            trên thanh tiến trình khi đang tập.
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          aria-label="Âm thanh khi tập"
+          onClick={() => setSoundEnabled(!enabled)}
+          className={cx(
+            'focus-ring relative h-8 w-14 shrink-0 rounded-full transition-colors',
+            enabled ? 'bg-teal-dark' : 'bg-ink/15',
+          )}
+        >
+          <span
+            className={cx(
+              'absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform',
+              enabled ? 'translate-x-7' : 'translate-x-1',
+            )}
+          />
+        </button>
+      </div>
+      <p className="mt-2 text-[11px] font-semibold leading-relaxed text-muted">
+        Lưu riêng trên thiết bị này, không đồng bộ lên máy chủ. Máy chưa có giọng tiếng Việt vẫn
+        phát chuông báo.
+      </p>
+    </Card>
   )
 }
 
