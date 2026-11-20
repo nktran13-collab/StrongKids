@@ -603,6 +603,40 @@ function IntroScreen({
             />
           </div>
 
+          <details className="group mt-2 rounded-2xl bg-white px-3.5 py-2.5">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-extrabold text-ink [&::-webkit-details-marker]:hidden">
+              <span>Chi tiết {plan.mainSlugs.length} bài chính</span>
+              <Icon name="right" className="h-4 w-4 text-muted transition group-open:rotate-90" />
+            </summary>
+            <ul className="mt-1 divide-y divide-line/70">
+              {plan.mainSlugs.map((slug) => {
+                const item = getExercise(slug)
+                const params = item.ageParams[plan.band]
+                const workStep = plan.steps.find(
+                  (step) => step.block === 'main' && step.kind === 'work' && step.slug === slug,
+                )
+                const target =
+                  item.metric === 'reps'
+                    ? `${Math.round(params?.target ?? 10)} lần`
+                    : `${workStep?.durationSec ?? params?.workSec ?? 0} giây`
+                return (
+                  <li key={slug} className="flex items-center justify-between gap-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-extrabold text-ink">{item.nameVi}</p>
+                      <p className="text-[11px] font-semibold text-muted">{CATEGORY_LABEL[item.category]}</p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-cream px-2.5 py-0.5 text-[11px] font-extrabold text-ink">
+                      {target}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+            <p className="pb-1 pt-2 text-[11px] font-semibold text-muted">
+              Mỗi vòng bé làm lần lượt từ trên xuống. Bố mẹ đếm to cùng bé nhé!
+            </p>
+          </details>
+
           <div className="mt-4 rounded-2xl bg-cream p-3 text-xs font-semibold leading-relaxed text-muted">
             Bố mẹ ngồi gần, quan sát bé và cùng đếm nhé. Bé mệt thì bấm “Bé mệt” bất cứ lúc nào —
             không bị trừ sao.

@@ -85,21 +85,38 @@ export function mulberry32(seed: number): () => number {
   }
 }
 
+interface SampleOptions {
+  /** Số bài tối đa cùng một nhóm trong buổi (bé 4–6 cần trộn nhiều kiểu vận động). */
+  categoryCap?: number
+  /** Hệ số phạt bài vừa tập gần đây; bé 4–6 cần đổi mới mạnh hơn. */
+  recentWeight?: number
+  /** Hệ số ưu tiên nhóm bài theo chủ đề của ngày. */
+  focusBoost?: number
+}
+
 function sampleExercises(
   pool: Exercise[],
   count: number,
   focus: Focus,
   recentSlugs: string[],
   rng: () => number,
+  options: SampleOptions = {},
 ): Exercise[] {
+  const { categoryCap, recentWeight = 0.18, focusBoost = 2.1 } = options
   const remaining = [...pool]
   const chosen: Exercise[] = []
+  const perCategory = new Map<Category, number>()
   const boosted = new Set(FOCUS_INFO[focus].categories)
 
   while (chosen.length < count && remaining.length > 0) {
-    const weights = remaining.map((exercise) => {
-      let weight = boosted.has(exercise.category) ? 2.1 : 1
-      if (recentSlugs.includes(exercise.slug)) weight *= 0.18
+    const underCap =
+      categoryCap === undefined
+        ? remaining
+        : remaining.filter((exercise) => (perCategory.get(exercise.category) ?? 0) < categoryCap)
+    const candidates = underCap.length > 0 ? underCap : remaining
+    const weights = candidates.map((exercise) => {
+      let weight = boosted.has(exercise.category) ? focusBoost : 1
+      if (recentSlugs.includes(exercise.slug)) weight *= recentWeight
       if (chosen.some((item) => item.category === exercise.category)) weight *= 0.72
       return weight
     })
@@ -113,8 +130,10 @@ function sampleExercises(
         break
       }
     }
-    chosen.push(remaining[index])
-    remaining.splice(index, 1)
+    const picked = candidates[index]
+    chosen.push(picked)
+    perCategory.set(picked.category, (perCategory.get(picked.category) ?? 0) + 1)
+    remaining.splice(remaining.indexOf(picked), 1)
   }
   return chosen
 }
@@ -156,14 +175,20 @@ export function buildSessionPlan(options: BuildPlanOptions): SessionPlan {
   const cooldownCount = 3
   const warmupWorkSec = workSecondsForAge(band, age, WARMUP_WORK_SEC)
   const cooldownWorkSec = workSecondsForAge(band, age, COOLDOWN_WORK_SEC)
-  // Bé 4–6 tập mỗi bài ngắn hơn nên cần thêm vòng để buổi tập đủ thời lượng.
-  const roundOptions = band === '4-6' ? [2, 3, 4, 5] : [2, 3, 4]
+  // Bé 4–6 tập mỗi bài ngắn hơn nên buổi tập cần thêm vòng; ưu tiên nhiều bài
+  // khác nhau (tối đa 2 bài cùng nhóm) để buổi nào cũng mới mẻ.
+  const isLittle = band === '4-6'
+  const mainCountOptions = isLittle ? [4, 5, 6, 7, 8] : [4, 5, 6]
+  const roundOptions = isLittle ? [2, 3, 4, 5] : [2, 3, 4]
+  const mainSampleOptions: SampleOptions | undefined = isLittle
+    ? { categoryCap: 2, recentWeight: 0.1, focusBoost: 1.7 }
+    : undefined
 
   let best:
     | { mains: Exercise[]; rounds: number; warmups: Exercise[]; cooldowns: Exercise[]; diff: number }
     | null = null
 
-  for (const mainCount of [4, 5, 6]) {
+  for (const mainCount of mainCountOptions) {
     for (const rounds of roundOptions) {
       const rng = mulberry32(
         hashString(`${childId}|${dateKey}|${mainCount}|${rounds}|${band}`),
@@ -188,13 +213,20 @@ export function buildSessionPlan(options: BuildPlanOptions): SessionPlan {
         focus,
         recentSlugs,
         rng,
+        mainSampleOptions,
       )
       const estimate =
         warmupCount * (warmupWorkSec + WARMUP_REST_SEC) +
         cooldownCount * (cooldownWorkSec + COOLDOWN_REST_SEC) +
         estimateMain(mains, band, age, rounds)
       const diff = Math.abs(estimate - targetSec)
-      if (!best || diff < best.diff) {
+      // Với bé 4–6, nếu thời lượng tương đương thì chọn phương án nhiều bài hơn.
+      const better = isLittle
+        ? !best ||
+          diff < best.diff - 30 ||
+          (Math.abs(diff - best.diff) <= 30 && mainCount > best.mains.length)
+        : !best || diff < best.diff
+      if (better) {
         best = { mains, rounds, warmups, cooldowns, diff }
       }
     }

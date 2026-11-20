@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { getExercise } from '../content/catalog'
 import { AGE_BANDS } from '../content/schema'
 import { buildSessionPlan } from './generator'
 
@@ -43,8 +44,42 @@ describe('sinh buổi tập', () => {
       })
       expect(new Set(plan.mainSlugs).size).toBe(plan.mainSlugs.length)
       expect(plan.mainSlugs.length).toBeGreaterThanOrEqual(4)
-      expect(plan.mainSlugs.length).toBeLessThanOrEqual(6)
+      expect(plan.mainSlugs.length).toBeLessThanOrEqual(band === '4-6' ? 8 : 6)
     }
+  })
+
+  it('nhóm 4–6 mỗi buổi trộn nhiều nhóm bài, tối đa 2 bài cùng nhóm', () => {
+    for (const dateKey of ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12']) {
+      for (const durationMin of [20, 25, 30]) {
+        const plan = buildSessionPlan({
+          childId: 'be-46-da-dang',
+          band: '4-6',
+          age: 5,
+          durationMin,
+          dateKey,
+        })
+        const categories = plan.mainSlugs.map((slug) => getExercise(slug).category)
+        expect(plan.mainSlugs.length, `${dateKey}/${durationMin}`).toBeGreaterThanOrEqual(5)
+        expect(new Set(categories).size).toBeGreaterThanOrEqual(3)
+        for (const category of new Set(categories)) {
+          expect(categories.filter((item) => item === category).length).toBeLessThanOrEqual(2)
+        }
+      }
+    }
+  })
+
+  it('nhóm 4–6 đổi bài mới khi bé vừa tập gần đây', () => {
+    const options = {
+      childId: 'be-46-moi',
+      band: '4-6' as const,
+      age: 5,
+      durationMin: 20,
+      dateKey: '2026-11-10',
+    }
+    const base = buildSessionPlan(options)
+    const next = buildSessionPlan({ ...options, recentSlugs: base.mainSlugs })
+    const overlap = next.mainSlugs.filter((slug) => base.mainSlugs.includes(slug)).length
+    expect(overlap).toBeLessThanOrEqual(1)
   })
 
   it('lịch chạy gần với thời lượng phụ huynh chọn', () => {
